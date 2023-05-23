@@ -29,6 +29,7 @@
   "devDependencies": {
     "@types/node": "^20.2.3",
     "nodemon": "^2.0.22",
+    "prettier": "2.8.8",
     "rimraf": "^5.0.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
