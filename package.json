@@ -1,0 +1,26 @@
+{
+  "name": "tsfish",
+  "version": "0.0.1",
+  "description": "TypeScript Chess Engine with UCI Interface",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/boweihan/TSFish.git"
+  },
+  "keywords": [
+    "chess",
+    "engine",
+    "typescript",
+    "lichess",
+    "bot"
+  ],
+  "author": "Bowei Han",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/boweihan/TSFish/issues"
+  },
+  "homepage": "https://github.com/boweihan/TSFish#readme"
+}
