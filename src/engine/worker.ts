@@ -1,3 +1,8 @@
 import UCIEngine from "./index";
+import { parentPort } from "worker_threads";
 
-new UCIEngine().start();
+const engine = new UCIEngine();
+
+parentPort?.on("message", (message) => {
+  engine.run(message);
+});

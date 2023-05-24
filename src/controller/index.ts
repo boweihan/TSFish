@@ -55,7 +55,7 @@ export default class UCIController {
           break;
         default:
           // send to engine thread
-          console.log(line);
+          this.worker.postMessage(line);
           break;
       }
     });
