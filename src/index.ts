@@ -1,1 +1,3 @@
-console.log("tests");
+import UCIController from "./controller";
+
+new UCIController().start();
