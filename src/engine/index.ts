@@ -1,9 +1,7 @@
-import { EngineInput, EngineOutput } from "../constants";
+import { EngineInput } from "../constants";
 
 export default class UCIEngine {
   public run(line: string) {
-    console.log(line);
-
     switch (line) {
       case EngineInput.SETOPTION:
         // not implemented
