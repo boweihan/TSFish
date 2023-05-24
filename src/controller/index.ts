@@ -26,7 +26,11 @@ export default class UCIController {
     console.log("Welcome to TSFish!");
 
     this.rl.on("line", (line) => {
-      switch (line) {
+      // https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
+      // UCI commands are space delimited
+      const tokens = line.split(" ");
+
+      switch (tokens[0]) {
         case EngineInput.UCI:
           console.log(
             `${EngineOutput.ID} name TSFish`,

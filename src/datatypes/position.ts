@@ -7,6 +7,8 @@ type State = {
   // side to move
 };
 
+export const StartPosition = "startpos";
+
 export interface Position {
   fen: string;
   board: ClassicalBoard;
@@ -18,8 +20,8 @@ export class PositionImpl implements Position {
   board: ClassicalBoard;
   state: State;
 
-  constructor() {
-    this.fen = "";
+  constructor(fen?: string) {
+    this.fen = fen || StartPosition;
     this.board = EmptyBoard;
     this.state = {};
   }
