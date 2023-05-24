@@ -1,8 +1,12 @@
 import readline from "readline";
+import path from "path";
+import { Worker } from "worker_threads";
 import { EngineInput, EngineOutput } from "../constants";
+import runWorker from "../util/runWorker";
 
 export default class UCIController {
-  rl: readline.Interface;
+  private rl: readline.Interface;
+  private worker: Worker;
 
   constructor() {
     this.rl = readline.createInterface({
@@ -10,9 +14,15 @@ export default class UCIController {
       output: process.stdout,
       terminal: false,
     });
+    this.worker = runWorker(
+      path.resolve(__dirname, "../engine/worker.js"),
+      (err, result) => {
+        console.log(err, result);
+      }
+    );
   }
 
-  start() {
+  public start() {
     console.log("Welcome to TSFish!");
 
     this.rl.on("line", (line) => {

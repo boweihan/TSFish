@@ -10,7 +10,7 @@ export const EngineInput = {
   STOP: "stop",
   PONDERHIT: "ponderhit",
   QUIT: "quit",
-  PRINT: "print",
+  PERFT: "perft",
 };
 
 export const EngineOutput = {
