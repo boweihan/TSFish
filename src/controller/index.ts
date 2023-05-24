@@ -22,46 +22,46 @@ export default class UCIController {
     );
   }
 
+  public processUCICommand = (line: string) => {
+    // https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
+    // UCI commands are space delimited
+    const tokens = line.split(" ");
+
+    switch (tokens[0]) {
+      case EngineInput.UCI:
+        console.log(`${EngineOutput.ID} name TSFish`);
+        console.log(`${EngineOutput.ID} author Bowei Han`);
+        console.log(EngineOutput.UCIOK);
+        break;
+      case EngineInput.ISREADY:
+        console.log(EngineOutput.READYOK);
+        break;
+      case EngineInput.DEBUG:
+        // not implemented
+        break;
+      case EngineInput.REGISTER:
+        // not implemented
+        break;
+      case EngineInput.STOP:
+        // not implemented
+        break;
+      case EngineInput.PONDERHIT:
+        // not implemented
+        break;
+      case EngineInput.QUIT:
+        console.log("Exiting...");
+        this.worker.terminate();
+        process.exit(0);
+      default:
+        // send to engine thread
+        this.worker.postMessage(line);
+        break;
+    }
+  };
+
   public start() {
     console.log("Welcome to TSFish!");
 
-    this.rl.on("line", (line) => {
-      // https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
-      // UCI commands are space delimited
-      const tokens = line.split(" ");
-
-      switch (tokens[0]) {
-        case EngineInput.UCI:
-          console.log(
-            `${EngineOutput.ID} name TSFish`,
-            `${EngineOutput.ID} author Bowei Han`,
-            EngineOutput.UCIOK
-          );
-          break;
-        case EngineInput.ISREADY:
-          console.log(EngineOutput.READYOK);
-          break;
-        case EngineInput.DEBUG:
-          // not implemented
-          break;
-        case EngineInput.REGISTER:
-          // not implemented
-          break;
-        case EngineInput.STOP:
-          // not implemented
-          break;
-        case EngineInput.PONDERHIT:
-          // not implemented
-          break;
-        case EngineInput.QUIT:
-          console.log("Thanks for using TSFish! Exiting...");
-          process.exit(0);
-          break;
-        default:
-          // send to engine thread
-          this.worker.postMessage(line);
-          break;
-      }
-    });
+    this.rl.on("line", this.processUCICommand);
   }
 }

@@ -11,6 +11,7 @@ const runWorker = (
   worker.on("message", cb.bind(null, null));
   worker.on("error", cb);
   worker.on("exit", (exitCode) => {
+    console.log("worker exiting", exitCode);
     if (exitCode === 0) {
       return null;
     }

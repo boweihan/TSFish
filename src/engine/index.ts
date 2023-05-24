@@ -22,9 +22,10 @@ export default class UCIEngine {
         break;
       case EngineInput.POSITION:
         this.position = new PositionImpl(tokens.slice(1).join(" "));
+        console.log(this.position.fen);
         break;
       case EngineInput.GO:
-        console.log("current position is", this.position.fen);
+        console.log(this.position.fen);
         break;
       case EngineInput.PERFT:
         // not implemented
