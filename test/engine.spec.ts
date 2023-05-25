@@ -28,4 +28,8 @@ describe("UCIEngine", () => {
     engine.run(`position ${fen}`);
     expect(logs[0]).toBe(fen);
   });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
 });

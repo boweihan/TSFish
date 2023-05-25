@@ -23,7 +23,7 @@ export type ClassicalBoard = {
 };
 
 // prettier-ignore
-export const EmptyBitBoard: BitBoard = [
+export const EmptyBitBoard = [
   0, 0, 0, 0, 0, 0, 0, 0, // 8
   0, 0, 0, 0, 0, 0, 0, 0, // 7
   0, 0, 0, 0, 0, 0, 0, 0, // 6
@@ -34,16 +34,16 @@ export const EmptyBitBoard: BitBoard = [
   0, 0, 0, 0, 0, 0, 0, 0, // 1
 ]
 
-export const EmptyBoard = {
-  white: EmptyBitBoard,
-  black: EmptyBitBoard,
-  kings: EmptyBitBoard,
-  queens: EmptyBitBoard,
-  rooks: EmptyBitBoard,
-  bishops: EmptyBitBoard,
-  knights: EmptyBitBoard,
-  pawns: EmptyBitBoard,
-};
+export const generateEmptyBoard = () => ({
+  white: [...EmptyBitBoard] as BitBoard,
+  black: [...EmptyBitBoard] as BitBoard,
+  kings: [...EmptyBitBoard] as BitBoard,
+  queens: [...EmptyBitBoard] as BitBoard,
+  rooks: [...EmptyBitBoard] as BitBoard,
+  bishops: [...EmptyBitBoard] as BitBoard,
+  knights: [...EmptyBitBoard] as BitBoard,
+  pawns: [...EmptyBitBoard] as BitBoard,
+});
 
 // // TODO
 // export type MagicBoard = {}
