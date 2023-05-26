@@ -24,11 +24,6 @@ export const EngineOutput = {
   OPTION: "option",
 };
 
-export const Sides = {
-  WHITE: "white",
-  BLACK: "black",
-};
-
 export const Pieces = {
   PAWN: "pawn",
   KNIGHT: "knight",

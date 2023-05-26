@@ -1,10 +1,18 @@
+import {
+  CastlingRights,
+  EnPassantTarget,
+  FullMoveNumber,
+  HalfMoveClock,
+  PlayerColor,
+} from "../types";
 import { ClassicalBoard, generateEmptyBoard } from "./bitboard";
 
 type State = {
-  // castling rights
-  // en passant square
-  // halfmove counter
-  // side to move
+  activeColor: PlayerColor;
+  castlingRights: CastlingRights;
+  enPassantTarget: EnPassantTarget;
+  halfMoveClock: HalfMoveClock;
+  fullMoveNumber: FullMoveNumber;
 };
 
 export const StartPosition = "startpos";
@@ -97,16 +105,28 @@ export const fenToBoard = (fen: string): ClassicalBoard => {
 
 export const fenToState = (fen: string): State => {
   if (fen === "startpos") {
-    return {};
+    return {
+      activeColor: "w",
+      castlingRights: "KQkq",
+      enPassantTarget: "-",
+      halfMoveClock: 0,
+      fullMoveNumber: 1,
+    };
   }
 
   const [
     activeColor,
     castlingRights,
-    enPassantTargets,
-    halfmoveClock,
+    enPassantTarget,
+    halfMoveClock,
     fullMoveNumber,
   ] = fen.split(" ").slice(1);
 
-  return {};
+  return {
+    activeColor,
+    castlingRights,
+    enPassantTarget,
+    halfMoveClock: parseInt(halfMoveClock),
+    fullMoveNumber: parseInt(fullMoveNumber),
+  };
 };

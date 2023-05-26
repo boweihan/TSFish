@@ -1,6 +1,42 @@
-import { fenToBoard } from "../src/datatypes";
+import { fenToBoard, fenToState } from "../src/datatypes";
 
 describe("Position", () => {
+  it("correctly translates FEN to state", () => {
+    expect(
+      fenToState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+    ).toEqual({
+      activeColor: "b",
+      castlingRights: "-",
+      enPassantTarget: "-",
+      halfMoveClock: 0,
+      fullMoveNumber: 1,
+    });
+  });
+
+  it("correctly translates FEN to state", () => {
+    expect(
+      fenToState("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50")
+    ).toEqual({
+      activeColor: "b",
+      castlingRights: "-",
+      enPassantTarget: "-",
+      halfMoveClock: 99,
+      fullMoveNumber: 50,
+    });
+  });
+
+  it("correctly translates FEN to state", () => {
+    expect(
+      fenToState("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
+    ).toEqual({
+      activeColor: "b",
+      castlingRights: "KQkq",
+      enPassantTarget: "e3",
+      halfMoveClock: 0,
+      fullMoveNumber: 1,
+    });
+  });
+
   it("correctly translates fen pieces to bitboard representation", () => {
     expect(
       fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
