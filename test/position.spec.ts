@@ -37,6 +37,16 @@ describe("Position", () => {
     });
   });
 
+  it("handles invalid color", () => {
+    const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR c KQkq e3 0 1";
+    expect(() => fenToState(fen)).toThrow(`Invalid FEN: ${fen}`);
+  });
+
+  it("handles invalid castling rights", () => {
+    const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b xq e3 0 1";
+    expect(() => fenToState(fen)).toThrow(`Invalid FEN: ${fen}`);
+  });
+
   it("correctly translates fen pieces to bitboard representation", () => {
     expect(
       fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")

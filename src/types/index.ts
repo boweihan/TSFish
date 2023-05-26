@@ -1,10 +1,10 @@
 export * from "./predicates";
 
-export type PlayerColor = string; // TODO: add type specificity
+export type PlayerColor = "w" | "b";
 
-export type CastlingRights = string; // TODO: add type specificity
+export type CastlingRights = string;
 
-export type EnPassantTarget = string; // TODO: add type specificity
+export type EnPassantTarget = string;
 
 export type HalfMoveClock = number;
 

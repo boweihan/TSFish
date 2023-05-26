@@ -4,6 +4,8 @@ import {
   FullMoveNumber,
   HalfMoveClock,
   PlayerColor,
+  isValidCastlingRights,
+  isValidPlayerColor,
 } from "../types";
 import { ClassicalBoard, generateEmptyBoard } from "./bitboard";
 
@@ -121,6 +123,13 @@ export const fenToState = (fen: string): State => {
     halfMoveClock,
     fullMoveNumber,
   ] = fen.split(" ").slice(1);
+
+  if (
+    !isValidPlayerColor(activeColor) ||
+    !isValidCastlingRights(castlingRights)
+  ) {
+    throw new Error(`Invalid FEN: ${fen}`);
+  }
 
   return {
     activeColor,
