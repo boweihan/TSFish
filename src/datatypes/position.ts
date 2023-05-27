@@ -81,10 +81,6 @@ export const fenToBoard = (fen: string): ClassicalBoard => {
 
   let board = generateEmptyBoard();
 
-  if (fen === "startpos") {
-    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
-  }
-
   ranks.forEach((subFen, index) => {
     const rank = 8 - index;
     let file = 0;

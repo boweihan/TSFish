@@ -21,7 +21,14 @@ export default class UCIEngine {
         this.position = new PositionImpl();
         break;
       case EngineInput.POSITION:
-        this.position = new PositionImpl(tokens.slice(1).join(" "));
+        let fen = tokens.slice(1).join(" ");
+        if (tokens[1] === "startpos") {
+          fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        }
+        this.position = new PositionImpl(fen);
+
+        // play moves given with args
+
         console.log(this.position.fen);
         break;
       case EngineInput.GO:
