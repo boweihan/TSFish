@@ -1,4 +1,4 @@
-import { EngineInput } from "../constants";
+import { DefaultFEN, EngineInput } from "../constants";
 import { Position, PositionImpl } from "../datatypes";
 
 export default class UCIEngine {
@@ -22,8 +22,8 @@ export default class UCIEngine {
         break;
       case EngineInput.POSITION:
         let fen = tokens.slice(1).join(" ");
-        if (tokens[1] === "startpos") {
-          fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
+        if (tokens[1] === EngineInput.STARTPOS) {
+          fen = DefaultFEN;
         }
         this.position = new PositionImpl(fen);
 

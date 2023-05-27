@@ -11,6 +11,7 @@ export const EngineInput = {
   PONDERHIT: "ponderhit",
   QUIT: "quit",
   PERFT: "perft",
+  STARTPOS: "startpos",
 };
 
 export const EngineOutput = {
@@ -32,3 +33,6 @@ export const Pieces = {
   QUEEN: "queen",
   KING: "king",
 };
+
+export const DefaultFEN =
+  "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
