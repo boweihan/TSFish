@@ -7,7 +7,13 @@ import {
   isValidCastlingRights,
   isValidPlayerColor,
 } from "../types";
-import { ClassicalBoard, generateEmptyBoard } from "./bitboard";
+import {
+  ClassicalBoards,
+  ClassicalBitBoards,
+  generateEmptyBoard,
+  boardsToBitBoards,
+} from "./bitboard";
+import { Color } from "../constants";
 
 type State = {
   activeColor: PlayerColor;
@@ -21,61 +27,61 @@ export const StartPosition = "startpos";
 
 export interface Position {
   fen: string;
-  board: ClassicalBoard;
+  board: ClassicalBitBoards;
   state: State;
 }
 
 export class PositionImpl implements Position {
   fen: string;
-  board: ClassicalBoard;
+  board: ClassicalBitBoards;
   state: State;
 
   constructor(fen?: string) {
     this.fen = fen || StartPosition;
-    this.board = fenToBoard(this.fen);
+    this.board = boardsToBitBoards(fenToBoard(this.fen));
     this.state = fenToState(this.fen);
   }
 }
 
 const assignPieceToBoard = (
-  board: ClassicalBoard,
+  board: ClassicalBoards,
   char: string,
   rank: number,
   file: number
 ) => {
   let position = (8 - rank) * 8 + file;
+  const color = char === char.toLowerCase() ? Color.BLACK : Color.WHITE;
 
-  if (char === char.toLowerCase()) {
-    board.black[position] = 1;
-  } else {
-    board.white[position] = 1;
-  }
+  let populatePieces = (color: "b" | "w") => {
+    switch (char.toLowerCase()) {
+      case "p":
+        board[color].pawns[position] = 1;
+        break;
+      case "r":
+        board[color].rooks[position] = 1;
+        break;
+      case "n":
+        board[color].knights[position] = 1;
+        break;
+      case "b":
+        board[color].bishops[position] = 1;
+        break;
+      case "q":
+        board[color].queens[position] = 1;
+        break;
+      case "k":
+        board[color].kings[position] = 1;
+        break;
+      default:
+        break;
+    }
+  };
 
-  switch (char.toLowerCase()) {
-    case "p":
-      board.pawns[position] = 1;
-      break;
-    case "r":
-      board.rooks[position] = 1;
-      break;
-    case "n":
-      board.knights[position] = 1;
-      break;
-    case "b":
-      board.bishops[position] = 1;
-      break;
-    case "q":
-      board.queens[position] = 1;
-      break;
-    case "k":
-      board.kings[position] = 1;
-      break;
-    default:
-      break;
-  }
+  board[color].pieces[position] = 1;
+  populatePieces(color);
 };
 
-export const fenToBoard = (fen: string): ClassicalBoard => {
+export const fenToBoard = (fen: string): ClassicalBoards => {
   const pieces = fen.split(" ")[0];
   const ranks = pieces.split("/");
 

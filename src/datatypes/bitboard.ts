@@ -1,3 +1,5 @@
+import { PlayerColor } from "../types";
+
 // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-1.html#recursive-conditional-types
 type Tuple<T, N extends number> = N extends N
   ? number extends N
@@ -9,11 +11,10 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
   ? R
   : _TupleOf<T, N, [T, ...R]>;
 
-export type BitBoard = Tuple<number, 64>;
+export type BitBoard = bigint;
 
-export type ClassicalBoard = {
-  white: BitBoard;
-  black: BitBoard;
+export type ColoredBitBoards = {
+  pieces: BitBoard;
   kings: BitBoard;
   queens: BitBoard;
   rooks: BitBoard;
@@ -22,8 +23,27 @@ export type ClassicalBoard = {
   pawns: BitBoard;
 };
 
+export type ClassicalBitBoards = {
+  [K in PlayerColor]: ColoredBitBoards;
+};
+export type ColoredBoards = {
+  pieces: Board;
+  kings: Board;
+  queens: Board;
+  rooks: Board;
+  bishops: Board;
+  knights: Board;
+  pawns: Board;
+};
+
+export type ClassicalBoards = {
+  [K in PlayerColor]: ColoredBoards;
+};
+
+export type Board = Tuple<number, 64>;
+
 // prettier-ignore
-export const EmptyBitBoard = [
+export const EmptyBoard = [
   0, 0, 0, 0, 0, 0, 0, 0, // 8
   0, 0, 0, 0, 0, 0, 0, 0, // 7
   0, 0, 0, 0, 0, 0, 0, 0, // 6
@@ -34,16 +54,51 @@ export const EmptyBitBoard = [
   0, 0, 0, 0, 0, 0, 0, 0, // 1
 ]
 
-export const generateEmptyBoard = () => ({
-  white: [...EmptyBitBoard] as BitBoard,
-  black: [...EmptyBitBoard] as BitBoard,
-  kings: [...EmptyBitBoard] as BitBoard,
-  queens: [...EmptyBitBoard] as BitBoard,
-  rooks: [...EmptyBitBoard] as BitBoard,
-  bishops: [...EmptyBitBoard] as BitBoard,
-  knights: [...EmptyBitBoard] as BitBoard,
-  pawns: [...EmptyBitBoard] as BitBoard,
+export const generateEmptyBoard = (): ClassicalBoards => ({
+  w: {
+    pieces: [...EmptyBoard] as Board,
+    kings: [...EmptyBoard] as Board,
+    queens: [...EmptyBoard] as Board,
+    rooks: [...EmptyBoard] as Board,
+    bishops: [...EmptyBoard] as Board,
+    knights: [...EmptyBoard] as Board,
+    pawns: [...EmptyBoard] as Board,
+  },
+  b: {
+    pieces: [...EmptyBoard] as Board,
+    kings: [...EmptyBoard] as Board,
+    queens: [...EmptyBoard] as Board,
+    rooks: [...EmptyBoard] as Board,
+    bishops: [...EmptyBoard] as Board,
+    knights: [...EmptyBoard] as Board,
+    pawns: [...EmptyBoard] as Board,
+  },
 });
 
-// // TODO
-// export type MagicBoard = {}
+export const boardToBitBoard = (board: Board) =>
+  BigInt(board.reduce((a, b) => a + b, ""));
+
+export const boardsToBitBoards = (
+  boards: ClassicalBoards
+): ClassicalBitBoards => {
+  return {
+    w: {
+      pieces: boardToBitBoard(boards.w.pieces),
+      kings: boardToBitBoard(boards.w.kings),
+      queens: boardToBitBoard(boards.w.queens),
+      rooks: boardToBitBoard(boards.w.rooks),
+      bishops: boardToBitBoard(boards.w.bishops),
+      knights: boardToBitBoard(boards.w.knights),
+      pawns: boardToBitBoard(boards.w.pawns),
+    },
+    b: {
+      pieces: boardToBitBoard(boards.b.pieces),
+      kings: boardToBitBoard(boards.b.kings),
+      queens: boardToBitBoard(boards.b.queens),
+      rooks: boardToBitBoard(boards.b.rooks),
+      bishops: boardToBitBoard(boards.b.bishops),
+      knights: boardToBitBoard(boards.b.knights),
+      pawns: boardToBitBoard(boards.b.pawns),
+    },
+  };
+};

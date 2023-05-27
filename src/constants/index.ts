@@ -1,3 +1,5 @@
+import { PlayerColor } from "../types";
+
 export const EngineInput = {
   UCI: "uci",
   DEBUG: "debug",
@@ -23,6 +25,11 @@ export const EngineOutput = {
   REGISTRATION: "registration",
   INFO: "info",
   OPTION: "option",
+};
+
+export const Color = {
+  WHITE: "w" as PlayerColor,
+  BLACK: "b" as PlayerColor,
 };
 
 export const Pieces = {
