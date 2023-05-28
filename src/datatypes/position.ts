@@ -21,20 +21,18 @@ type State = {
 export const StartPosition = "startpos";
 
 export interface Position {
-  fen: string;
   board: ClassicalBoards;
   state: State;
 }
 
 export class PositionImpl implements Position {
-  fen: string;
   board: ClassicalBoards;
   state: State;
 
   constructor(fen?: string) {
-    this.fen = fen || StartPosition;
-    this.board = this.fenToBoard(this.fen);
-    this.state = this.fenToState(this.fen);
+    fen = fen || StartPosition;
+    this.board = this.fenToBoard(fen);
+    this.state = this.fenToState(fen);
   }
 
   private fenToBoard = (fen: string): ClassicalBoards => {
@@ -127,5 +125,75 @@ export class PositionImpl implements Position {
     };
   }
 
-  toFen() {}
+  public toFen() {
+    // TODO: implement
+  }
+
+  public generateMoves() {
+    // TODO: implement
+  }
+
+  public move() {
+    // TODO: implement
+  }
+
+  public undoMove() {
+    // TODO: implement
+  }
+
+  public get() {
+    // TODO: implement
+  }
+
+  public set() {
+    // TODO: implement
+  }
+
+  public updateCastlingRights() {
+    // TODO: implement
+  }
+
+  public updateActiveColor() {
+    // TODO: implement
+  }
+
+  public updateEnPassantSquare() {
+    // TODO: implement
+  }
+
+  public updateSideToMove() {
+    // TODO: implement
+  }
+
+  public incrementClock() {
+    // TODO: implement
+  }
+
+  public isAttacked() {
+    // TODO: implement
+  }
+
+  public isCheck() {
+    // TODO: implement
+  }
+
+  public isCheckmate() {
+    // TODO: implement
+  }
+
+  public isStalemate() {
+    // TODO: implement
+  }
+
+  public isInsufficientMaterial() {
+    // TODO: implement
+  }
+
+  public isThreefoldRepetition() {
+    // TODO: implement
+  }
+
+  public isDraw() {
+    // TODO: implement
+  }
 }

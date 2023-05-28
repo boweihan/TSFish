@@ -26,13 +26,8 @@ export default class UCIEngine {
           fen = DefaultFEN;
         }
         this.position = new PositionImpl(fen);
-
-        // play moves given with args
-
-        console.log(this.position.fen);
         break;
       case EngineInput.GO:
-        console.log(this.position.fen);
         break;
       case EngineInput.PERFT:
         // not implemented
