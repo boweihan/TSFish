@@ -1,11 +1,12 @@
-import { fenToBoard, fenToState, boardToBitBoard } from "../src/datatypes";
+import { PositionImpl, boardToBitBoard } from "../src/datatypes";
 
 describe("Position", () => {
   it("transforms board to bitboard", () => {
     expect(
       boardToBitBoard(
-        fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1").w
-          .bishops
+        new PositionImpl(
+          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+        ).board.w.bishops
       )
     ).toEqual(
       BigInt("0000000000000000000000000000000000000000000000000000000000100100")
@@ -15,8 +16,9 @@ describe("Position", () => {
   it("transforms board to bitboard", () => {
     expect(
       boardToBitBoard(
-        fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1").b
-          .pawns
+        new PositionImpl(
+          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+        ).board.b.pawns
       )
     ).toEqual(
       BigInt("0000000011111111000000000000000000000000000000000000000000000000")
@@ -25,7 +27,8 @@ describe("Position", () => {
 
   it("correctly translates FEN to state", () => {
     expect(
-      fenToState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .state
     ).toEqual({
       activeColor: "b",
       castlingRights: "-",
@@ -37,7 +40,7 @@ describe("Position", () => {
 
   it("correctly translates FEN to state", () => {
     expect(
-      fenToState("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50")
+      new PositionImpl("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50").state
     ).toEqual({
       activeColor: "b",
       castlingRights: "-",
@@ -49,7 +52,9 @@ describe("Position", () => {
 
   it("correctly translates FEN to state", () => {
     expect(
-      fenToState("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1")
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+      ).state
     ).toEqual({
       activeColor: "b",
       castlingRights: "KQkq",
@@ -61,17 +66,18 @@ describe("Position", () => {
 
   it("handles invalid color", () => {
     const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR c KQkq e3 0 1";
-    expect(() => fenToState(fen)).toThrow(`Invalid FEN: ${fen}`);
+    expect(() => new PositionImpl(fen)).toThrow(`Invalid FEN: ${fen}`);
   });
 
   it("handles invalid castling rights", () => {
     const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b xq e3 0 1";
-    expect(() => fenToState(fen)).toThrow(`Invalid FEN: ${fen}`);
+    expect(() => new PositionImpl(fen)).toThrow(`Invalid FEN: ${fen}`);
   });
 
   it("correctly translates fen pieces to bitboard representation", () => {
     expect(
-      fenToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .board
     ).toEqual({
       w: {
         // prettier-ignore
@@ -235,10 +241,11 @@ describe("Position", () => {
   });
 
   it("correctly translates fen pieces to bitboard representation", () => {
-    expect(fenToBoard("8/8/8/4p1K1/2k1P3/8/8/8 b - - 0 1")).toEqual({
-      w: {
-        // prettier-ignore
-        bishops: [
+    expect(new PositionImpl("8/8/8/4p1K1/2k1P3/8/8/8 b - - 0 1").board).toEqual(
+      {
+        w: {
+          // prettier-ignore
+          bishops: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -248,8 +255,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        kings: [
+          // prettier-ignore
+          kings: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -259,8 +266,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        knights: [
+          // prettier-ignore
+          knights: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -270,8 +277,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        pawns: [
+          // prettier-ignore
+          pawns: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -281,8 +288,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        queens: [
+          // prettier-ignore
+          queens: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -292,8 +299,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        rooks: [
+          // prettier-ignore
+          rooks: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -303,8 +310,8 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-        // prettier-ignore
-        pieces: [
+          // prettier-ignore
+          pieces: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -314,10 +321,10 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
-      },
-      b: {
-        // prettier-ignore
-        bishops: [
+        },
+        b: {
+          // prettier-ignore
+          bishops: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -327,8 +334,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        pieces: [
+          // prettier-ignore
+          pieces: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -338,8 +345,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        kings: [
+          // prettier-ignore
+          kings: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -349,8 +356,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        knights: [
+          // prettier-ignore
+          knights: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -360,8 +367,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        pawns: [
+          // prettier-ignore
+          pawns: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -371,8 +378,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        queens: [
+          // prettier-ignore
+          queens: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -382,8 +389,8 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-        // prettier-ignore
-        rooks: [
+          // prettier-ignore
+          rooks: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -393,13 +400,14 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
-      },
-    });
+        },
+      }
+    );
   });
 
   it("correctly translates fen pieces to bitboard representation", () => {
     expect(
-      fenToBoard("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50")
+      new PositionImpl("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50").board
     ).toEqual({
       w: {
         // prettier-ignore
