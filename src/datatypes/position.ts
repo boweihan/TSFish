@@ -136,19 +136,28 @@ export class PositionImpl implements Position {
     // for all empty square targets generate quiet moves (move list)
   }
 
+  encodeMoves() {
+    // TODO: implement
+  }
+
+  getLS1B() {
+    // TODO: implement
+    // https://www.chessprogramming.org/BitScan
+  }
+
   generateKnightMoves(square: bigint) {
     let attacks = BigInt(0);
-    let bitboard = this.set(BigInt(0), square);
+    let startpos = this.set(BigInt(0), square);
 
     const moves = [
-      (bitboard << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
-      (bitboard << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
-      (bitboard >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
-      (bitboard >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
-      (bitboard << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
-      (bitboard << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
-      (bitboard >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
-      (bitboard >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+      (startpos << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
+      (startpos << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
+      (startpos >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
+      (startpos >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
+      (startpos << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
+      (startpos << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
+      (startpos >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
+      (startpos >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
     ];
 
     moves.forEach((move) => {
