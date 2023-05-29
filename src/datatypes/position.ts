@@ -8,7 +8,7 @@ import {
   isValidPlayerColor,
 } from "../types";
 import { ClassicalBoards, generateEmptyBoard } from "./bitboard";
-import { Color } from "../constants";
+import { Color, Masks } from "../constants";
 
 type State = {
   activeColor: PlayerColor;
@@ -125,75 +125,103 @@ export class PositionImpl implements Position {
     };
   }
 
-  public toFen() {
+  toFen() {
     // TODO: implement
   }
 
-  public generateMoves() {
+  generateMoves() {
+    // for all pieces
+    // generate move targets
+    // for all capture targets generate captures (move or capture list)
+    // for all empty square targets generate quiet moves (move list)
+  }
+
+  generateKnightMoves(square: bigint) {
+    let attacks = BigInt(0);
+    let bitboard = this.set(BigInt(0), square);
+
+    const moves = [
+      (bitboard << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
+      (bitboard << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
+      (bitboard >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
+      (bitboard >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
+      (bitboard << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
+      (bitboard << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
+      (bitboard >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
+      (bitboard >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+    ];
+
+    moves.forEach((move) => {
+      if (move != BigInt(0)) {
+        attacks |= move;
+      }
+    });
+
+    // TODO: clamp at 64 bits?
+    return attacks;
+  }
+
+  move() {
     // TODO: implement
   }
 
-  public move() {
+  undoMove() {
     // TODO: implement
   }
 
-  public undoMove() {
+  get() {
     // TODO: implement
   }
 
-  public get() {
+  set(board: bigint, square: bigint): bigint {
+    return (board |= BigInt(1) << square);
+  }
+
+  updateCastlingRights() {
     // TODO: implement
   }
 
-  public set() {
+  updateActiveColor() {
     // TODO: implement
   }
 
-  public updateCastlingRights() {
+  updateEnPassantSquare() {
     // TODO: implement
   }
 
-  public updateActiveColor() {
+  updateSideToMove() {
     // TODO: implement
   }
 
-  public updateEnPassantSquare() {
+  incrementClock() {
     // TODO: implement
   }
 
-  public updateSideToMove() {
+  isAttacked() {
     // TODO: implement
   }
 
-  public incrementClock() {
+  isCheck() {
     // TODO: implement
   }
 
-  public isAttacked() {
+  isCheckmate() {
     // TODO: implement
   }
 
-  public isCheck() {
+  isStalemate() {
     // TODO: implement
   }
 
-  public isCheckmate() {
+  isInsufficientMaterial() {
     // TODO: implement
   }
 
-  public isStalemate() {
+  isThreefoldRepetition() {
     // TODO: implement
   }
 
-  public isInsufficientMaterial() {
-    // TODO: implement
-  }
-
-  public isThreefoldRepetition() {
-    // TODO: implement
-  }
-
-  public isDraw() {
+  isDraw() {
     // TODO: implement
   }
 }

@@ -76,7 +76,12 @@ export const generateEmptyBoard = (): ClassicalBoards => ({
 });
 
 export const boardToBitBoard = (board: Board) =>
-  BigInt(board.reduce((a, b) => a + b, ""));
+  BigInt(
+    parseInt(
+      board.reduce((a, b) => a + b, ""),
+      2 // convert to binary
+    )
+  );
 
 export const boardsToBitBoards = (
   boards: ClassicalBoards

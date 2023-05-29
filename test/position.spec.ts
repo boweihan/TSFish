@@ -1,6 +1,17 @@
+import { Squares } from "../src/constants";
 import { PositionImpl, boardToBitBoard } from "../src/datatypes";
 
 describe("Position", () => {
+  it("sets a bit", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).set(BigInt(0), Squares.b1)
+    ).toEqual(
+      BigInt(0b0000010000000000000000000000000000000000000000000000000000000000)
+    );
+  });
+
   it("transforms board to bitboard", () => {
     expect(
       boardToBitBoard(
@@ -9,7 +20,7 @@ describe("Position", () => {
         ).board.w.bishops
       )
     ).toEqual(
-      BigInt("0000000000000000000000000000000000000000000000000000000000100100")
+      BigInt(0b0000000000000000000000000000000000000000000000000000000000100100)
     );
   });
 
@@ -21,7 +32,7 @@ describe("Position", () => {
         ).board.b.pawns
       )
     ).toEqual(
-      BigInt("0000000011111111000000000000000000000000000000000000000000000000")
+      BigInt(0b0000000011111111000000000000000000000000000000000000000000000000)
     );
   });
 
