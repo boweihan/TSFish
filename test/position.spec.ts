@@ -12,6 +12,16 @@ describe("Position", () => {
     );
   });
 
+  it("removes a bit", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).remove(BigInt(1) << Squares.b1, Squares.b1)
+    ).toEqual(
+      BigInt(0b0000000000000000000000000000000000000000000000000000000000000000)
+    );
+  });
+
   it("transforms board to bitboard", () => {
     expect(
       boardToBitBoard(

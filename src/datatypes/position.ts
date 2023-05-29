@@ -169,12 +169,12 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
-  get() {
-    // TODO: implement
-  }
-
   set(board: bigint, square: bigint): bigint {
     return (board |= BigInt(1) << square);
+  }
+
+  remove(board: bigint, square: bigint): bigint {
+    return (board &= ~(BigInt(1) << square));
   }
 
   updateCastlingRights() {
