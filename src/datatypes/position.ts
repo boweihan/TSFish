@@ -140,9 +140,11 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
-  getLS1B() {
-    // TODO: implement
-    // https://www.chessprogramming.org/BitScan
+  getLS1B(board: bigint) {
+    // intersection of binary number and it's twos complement isolates the LS1B
+    // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
+    // javascript represents negative numbers as the twos complement
+    return board & -board;
   }
 
   generateKnightMoves(square: bigint) {

@@ -2,6 +2,22 @@ import { Squares } from "../src/constants";
 import { PositionImpl, boardToBitBoard } from "../src/datatypes";
 
 describe("Position", () => {
+  it("gets least significant bit", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).getLS1B(BigInt(0b00111001010000000))
+    ).toEqual(BigInt(0b10000000));
+  });
+
+  it("gets least significant bit", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).getLS1B(BigInt(0b00111001010110000))
+    ).toEqual(BigInt(0b10000));
+  });
+
   it("sets a bit", () => {
     expect(
       new PositionImpl(
