@@ -1,7 +1,51 @@
 import { Squares } from "../src/constants";
 import { PositionImpl, boardToBitBoard } from "../src/datatypes";
 
+const prettyPrint = (board: bigint) => {
+  const ranks = 8;
+  const binaryStr = board.toString(2).padStart(64, "0");
+
+  let result = "";
+
+  for (let rank = 0; rank < ranks; rank++) {
+    result +=
+      binaryStr
+        .slice(rank * 8, rank * 8 + 8)
+        .split("")
+        .join(" ") + "\n";
+  }
+  console.log(result);
+};
+
 describe("Position", () => {
+  it("generates knight moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateKnightMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000000000000000000000100000
+          )
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000000000000000000000000000000000010100001000100000000000)
+    );
+  });
+
+  it("generates knight moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateKnightMoves(
+          BigInt(
+            0b0000000000000000000100000000000000000000000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0010100001000100000000000100010000101000000000000000000000000000)
+    );
+  });
+
   it("gets least significant bit", () => {
     expect(
       new PositionImpl(
@@ -24,7 +68,7 @@ describe("Position", () => {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
       ).set(BigInt(0), Squares.b1)
     ).toEqual(
-      BigInt(0b0000010000000000000000000000000000000000000000000000000000000000)
+      BigInt(0b0000001000000000000000000000000000000000000000000000000000000000)
     );
   });
 
@@ -32,7 +76,7 @@ describe("Position", () => {
     expect(
       new PositionImpl(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).remove(BigInt(1) << Squares.b1, Squares.b1)
+      ).remove(Squares.b1, Squares.b1)
     ).toEqual(
       BigInt(0b0000000000000000000000000000000000000000000000000000000000000000)
     );

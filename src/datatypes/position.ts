@@ -148,10 +148,9 @@ export class PositionImpl implements Position {
   }
 
   generateKnightMoves(square: bigint) {
-    let attacks = BigInt(0);
     let startpos = this.set(BigInt(0), square);
 
-    const moves = [
+    return [
       (startpos << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
       (startpos << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
       (startpos >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
@@ -160,16 +159,7 @@ export class PositionImpl implements Position {
       (startpos << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
       (startpos >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
       (startpos >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
-    ];
-
-    moves.forEach((move) => {
-      if (move != BigInt(0)) {
-        attacks |= move;
-      }
-    });
-
-    // TODO: clamp at 64 bits?
-    return attacks;
+    ].filter(Boolean);
   }
 
   move() {
@@ -181,11 +171,11 @@ export class PositionImpl implements Position {
   }
 
   set(board: bigint, square: bigint): bigint {
-    return (board |= BigInt(1) << square);
+    return (board |= square);
   }
 
   remove(board: bigint, square: bigint): bigint {
-    return (board &= ~(BigInt(1) << square));
+    return (board &= ~square);
   }
 
   updateCastlingRights() {
