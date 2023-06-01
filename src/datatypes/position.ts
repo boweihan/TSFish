@@ -147,7 +147,11 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  generateKnightMoves(square: bigint): bigint[] {
+  generatePawnMoves(square: bigint) {
+    // TODO: implement
+  }
+
+  generateKnightMoves(square: bigint) {
     let startpos = this.set(BigInt(0), square);
 
     return [
@@ -162,7 +166,19 @@ export class PositionImpl implements Position {
     ].filter(Boolean);
   }
 
-  generateKingMoves(square: bigint): bigint[] {
+  generateBishopMoves(square: bigint) {
+    // TODO: implement
+  }
+
+  generateRookMoves(square: bigint) {
+    // TODO: implement
+  }
+
+  generateQueenMoves(square: bigint) {
+    // TODO: implement
+  }
+
+  generateKingMoves(square: bigint) {
     let startpos = this.set(BigInt(0), square);
 
     return [
