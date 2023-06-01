@@ -17,7 +17,31 @@ const prettyPrint = (board: bigint) => {
   console.log(result);
 };
 
+// prettyPrint(
+//   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+//     .generateKingMoves(
+//       BigInt(
+//         0b0000000000000000000100000000000000000000000000000000000000000000
+//       )
+//     )
+//     .reduce((a, b) => a | b)
+// );
+
 describe("Position", () => {
+  it("generates king moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateKingMoves(
+          BigInt(
+            0b0000000000000000000100000000000000000000000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000111000001010000011100000000000000000000000000000000000)
+    );
+  });
+
   it("generates knight moves", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")

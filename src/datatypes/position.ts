@@ -147,7 +147,7 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  generateKnightMoves(square: bigint) {
+  generateKnightMoves(square: bigint): bigint[] {
     let startpos = this.set(BigInt(0), square);
 
     return [
@@ -159,6 +159,21 @@ export class PositionImpl implements Position {
       (startpos << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
       (startpos >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
       (startpos >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+    ].filter(Boolean);
+  }
+
+  generateKingMoves(square: bigint): bigint[] {
+    let startpos = this.set(BigInt(0), square);
+
+    return [
+      startpos << BigInt(8), // no
+      (startpos << BigInt(7)) & Masks.NOT_H_FILE, // noEa
+      (startpos >> BigInt(1)) & Masks.NOT_H_FILE, // ea
+      (startpos >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
+      startpos >> BigInt(8), // so
+      (startpos >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
+      (startpos << BigInt(1)) & Masks.NOT_A_FILE, // we
+      (startpos << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ].filter(Boolean);
   }
 
