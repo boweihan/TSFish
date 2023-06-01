@@ -1,5 +1,6 @@
 import { Squares } from "../src/constants";
-import { PositionImpl, boardToBitBoard } from "../src/datatypes";
+import { PositionImpl } from "../src/position";
+import { boardToBitBoard } from "../src/datatypes";
 
 const prettyPrint = (board: bigint) => {
   const ranks = 8;

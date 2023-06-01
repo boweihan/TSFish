@@ -7,7 +7,7 @@ import {
   isValidCastlingRights,
   isValidPlayerColor,
 } from "../types";
-import { ClassicalBoards, generateEmptyBoard } from "./bitboard";
+import { ClassicalBoards, generateEmptyBoard } from "../datatypes/bitboard";
 import { Color, Masks } from "../constants";
 
 type State = {

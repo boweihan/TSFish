@@ -1,5 +1,5 @@
 import { DefaultFEN, EngineInput } from "../constants";
-import { Position, PositionImpl } from "../datatypes";
+import { Position, PositionImpl } from "../position";
 
 export default class UCIEngine {
   position: Position;
