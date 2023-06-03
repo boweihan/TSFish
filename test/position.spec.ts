@@ -20,15 +20,76 @@ const prettyPrint = (board: bigint) => {
 
 // prettyPrint(
 //   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-//     .generateKingMoves(
+//     .generatePawnMoves(
 //       BigInt(
-//         0b0000000000000000000100000000000000000000000000000000000000000000
-//       )
+//         0b0000000010000000000000000000000000000000000000000000000000000000
+//       ),
+//       "b"
 //     )
 //     .reduce((a, b) => a | b)
 // );
 
 describe("Position", () => {
+  it("generates double pushes for black", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000010000000000000000000000000000000000000000000000000000000
+          ),
+          "b"
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000000000100000001000000000000000000000000000000000000000)
+    );
+  });
+
+  it("generates double pushes for white", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000000000000000000100000000
+          ),
+          "w"
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000000000000000000000000000000001000000010000000000000000)
+    );
+  });
+
+  it("generates pawn moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000000000100000000000000000000000000000000000000000000
+          ),
+          "b"
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000000000000000000001000000000000000000000000000000000000)
+    );
+  });
+
+  it("generates pawn moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000000000100000000000000000000000000000000000000000000
+          ),
+          "w"
+        )
+        .reduce((a, b) => a | b)
+    ).toEqual(
+      BigInt(0b0000000000010000000000000000000000000000000000000000000000000000)
+    );
+  });
+
   it("generates king moves", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")

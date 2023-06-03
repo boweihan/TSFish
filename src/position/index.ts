@@ -8,7 +8,7 @@ import {
   isValidPlayerColor,
 } from "../types";
 import { ClassicalBoards, generateEmptyBoard } from "../datatypes/bitboard";
-import { Color, Masks } from "../constants";
+import { Color, Masks, Max64BitInt, Rank2, Rank7 } from "../constants";
 
 type State = {
   activeColor: PlayerColor;
@@ -147,8 +147,36 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  generatePawnMoves(square: bigint) {
-    // TODO: implement
+  generatePawnMoves(square: bigint, color: PlayerColor) {
+    let startpos = this.set(BigInt(0), square);
+
+    const moves = [];
+
+    switch (color) {
+      case "w":
+        // single push
+        if ((startpos << BigInt(8)) & Max64BitInt)
+          moves.push(startpos << BigInt(8)); // ensure pawn pushes don't go off the board for white
+        // double push
+        if (startpos & Rank2 & Max64BitInt) {
+          moves.push(startpos << BigInt(16));
+        }
+        // promotion
+        break;
+      case "b":
+        // single push
+        moves.push(startpos >> BigInt(8));
+        // double push
+        if (startpos & Rank7) {
+          moves.push(startpos >> BigInt(16));
+        }
+        // promotion
+        break;
+      default:
+        throw new Error("invalid player color!");
+    }
+
+    return moves;
   }
 
   generateKnightMoves(square: bigint) {
