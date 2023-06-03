@@ -18,18 +18,71 @@ const prettyPrint = (board: bigint) => {
   console.log(result);
 };
 
-// prettyPrint(
-//   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-//     .generatePawnMoves(
-//       BigInt(
-//         0b0000000010000000000000000000000000000000000000000000000000000000
-//       ),
-//       "b"
-//     )
-//     .reduce((a, b) => a | b)
-// );
+prettyPrint(
+  new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+    .generateBishopMoves(
+      BigInt(0b0000000000000000000000000000000000000100000000000000000000000000)
+    )
+    .reduce((a, b) => a | b)
+);
 
 describe("Position", () => {
+  it("generates bishop moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateBishopMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000100000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual(
+      "100000000100000000100010000101000000000000010100001000100100000"
+    );
+  });
+
+  it("generates bishop moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateBishopMoves(
+          BigInt(
+            0b0000000000000000000000000000000000100000000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("1000000100100010000101000000000000010100001000100000000100");
+  });
+
+  it("generates bishop moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateBishopMoves(
+          BigInt(
+            0b1000000000000000000000000000000000000000000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("1000000001000000001000000001000000001000000001000000001");
+  });
+
+  it("generates bishop moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateBishopMoves(
+          BigInt(
+            0b0000000010000000000000000000000000000000000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual(
+      "100000000000000010000000010000000010000000010000000010000000010"
+    );
+  });
+
   it("generates double pushes for black", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
@@ -40,9 +93,8 @@ describe("Position", () => {
           "b"
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000000000100000001000000000000000000000000000000000000000)
-    );
+        .toString(2)
+    ).toEqual("100000001000000000000000000000000000000000000000");
   });
 
   it("generates double pushes for white", () => {
@@ -55,9 +107,8 @@ describe("Position", () => {
           "w"
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000000000000000000000000000000001000000010000000000000000)
-    );
+        .toString(2)
+    ).toEqual("1000000010000000000000000");
   });
 
   it("generates pawn moves", () => {
@@ -70,9 +121,8 @@ describe("Position", () => {
           "b"
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000000000000000000001000000000000000000000000000000000000)
-    );
+        .toString(2)
+    ).toEqual("1000000000000000000000000000000000000");
   });
 
   it("generates pawn moves", () => {
@@ -85,9 +135,8 @@ describe("Position", () => {
           "w"
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000010000000000000000000000000000000000000000000000000000)
-    );
+        .toString(2)
+    ).toEqual("10000000000000000000000000000000000000000000000000000");
   });
 
   it("generates king moves", () => {
@@ -99,9 +148,8 @@ describe("Position", () => {
           )
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000111000001010000011100000000000000000000000000000000000)
-    );
+        .toString(2)
+    ).toEqual("111000001010000011100000000000000000000000000000000000");
   });
 
   it("generates knight moves", () => {
@@ -113,9 +161,8 @@ describe("Position", () => {
           )
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0000000000000000000000000000000000000000010100001000100000000000)
-    );
+        .toString(2)
+    ).toEqual("10100001000100000000000");
   });
 
   it("generates knight moves", () => {
@@ -127,45 +174,40 @@ describe("Position", () => {
           )
         )
         .reduce((a, b) => a | b)
-    ).toEqual(
-      BigInt(0b0010100001000100000000000100010000101000000000000000000000000000)
-    );
+        .toString(2)
+    ).toEqual("10100001000100000000000100010000101000000000000000000000000000");
   });
 
   it("gets least significant bit", () => {
     expect(
-      new PositionImpl(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).getLS1B(BigInt(0b00111001010000000))
-    ).toEqual(BigInt(0b10000000));
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .getLS1B(BigInt(0b00111001010000000))
+        .toString(2)
+    ).toEqual("10000000");
   });
 
   it("gets least significant bit", () => {
     expect(
-      new PositionImpl(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).getLS1B(BigInt(0b00111001010110000))
-    ).toEqual(BigInt(0b10000));
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .getLS1B(BigInt(0b00111001010110000))
+        .toString(2)
+    ).toEqual("10000");
   });
 
   it("sets a bit", () => {
     expect(
-      new PositionImpl(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).set(BigInt(0), Squares.b1)
-    ).toEqual(
-      BigInt(0b0000001000000000000000000000000000000000000000000000000000000000)
-    );
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .set(BigInt(0), Squares.b1)
+        .toString(2)
+    ).toEqual("1000000000000000000000000000000000000000000000000000000000");
   });
 
   it("removes a bit", () => {
     expect(
-      new PositionImpl(
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).remove(Squares.b1, Squares.b1)
-    ).toEqual(
-      BigInt(0b0000000000000000000000000000000000000000000000000000000000000000)
-    );
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .remove(Squares.b1, Squares.b1)
+        .toString(2)
+    ).toEqual("0");
   });
 
   it("transforms board to bitboard", () => {
@@ -174,10 +216,8 @@ describe("Position", () => {
         new PositionImpl(
           "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
         ).board.w.bishops
-      )
-    ).toEqual(
-      BigInt(0b0000000000000000000000000000000000000000000000000000000000100100)
-    );
+      ).toString(2)
+    ).toEqual("100100");
   });
 
   it("transforms board to bitboard", () => {
@@ -186,10 +226,8 @@ describe("Position", () => {
         new PositionImpl(
           "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
         ).board.b.pawns
-      )
-    ).toEqual(
-      BigInt(0b0000000011111111000000000000000000000000000000000000000000000000)
-    );
+      ).toString(2)
+    ).toEqual("11111111000000000000000000000000000000000000000000000000");
   });
 
   it("correctly translates FEN to state", () => {

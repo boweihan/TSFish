@@ -195,7 +195,58 @@ export class PositionImpl implements Position {
   }
 
   generateBishopMoves(square: bigint) {
-    // TODO: implement
+    let startpos = this.set(BigInt(0), square);
+
+    const moves = [];
+
+    // loop through each of the directions and add to the moveset
+    let noEaRay = startpos;
+
+    while (noEaRay) {
+      noEaRay <<= BigInt(7);
+      noEaRay &= Max64BitInt;
+      noEaRay &= Masks.NOT_H_FILE;
+
+      if (noEaRay) {
+        moves.push(noEaRay);
+      }
+    }
+
+    let noWeRay = startpos;
+
+    while (noWeRay) {
+      noWeRay <<= BigInt(9);
+      noWeRay &= Max64BitInt;
+      noWeRay &= Masks.NOT_A_FILE;
+
+      if (noWeRay) {
+        moves.push(noWeRay);
+      }
+    }
+
+    let soEaRay = startpos;
+
+    while (soEaRay) {
+      soEaRay >>= BigInt(9);
+      soEaRay &= Masks.NOT_H_FILE;
+
+      if (soEaRay) {
+        moves.push(soEaRay);
+      }
+    }
+
+    let soWeRay = startpos;
+
+    while (soWeRay) {
+      soWeRay >>= BigInt(7);
+      soWeRay &= Masks.NOT_A_FILE;
+
+      if (soWeRay) {
+        moves.push(soWeRay);
+      }
+    }
+
+    return moves;
   }
 
   generateRookMoves(square: bigint) {

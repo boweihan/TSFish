@@ -246,6 +246,6 @@ export const Squares = {
   ),
 };
 
-export const Max64BitInt = BigInt("18446743798831644671");
+export const Max64BitInt = BigInt("18446744073709551615");
 export const Rank2 = BigInt("65280");
 export const Rank7 = BigInt("143552238122434560");
