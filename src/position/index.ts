@@ -250,7 +250,55 @@ export class PositionImpl implements Position {
   }
 
   generateRookMoves(square: bigint) {
-    // TODO: implement
+    let startpos = this.set(BigInt(0), square);
+
+    const moves = [];
+
+    // loop through each of the directions and add to the moveset
+    let noRay = startpos;
+
+    while (noRay) {
+      noRay <<= BigInt(8);
+      noRay &= Max64BitInt;
+
+      if (noRay) {
+        moves.push(noRay);
+      }
+    }
+
+    let eaRay = startpos;
+
+    while (eaRay) {
+      eaRay >>= BigInt(1);
+      eaRay &= Masks.NOT_H_FILE;
+
+      if (eaRay) {
+        moves.push(eaRay);
+      }
+    }
+
+    let soRay = startpos;
+
+    while (soRay) {
+      soRay >>= BigInt(8);
+
+      if (soRay) {
+        moves.push(soRay);
+      }
+    }
+
+    let weRay = startpos;
+
+    while (weRay) {
+      weRay <<= BigInt(1);
+      weRay &= Masks.NOT_A_FILE;
+
+      if (weRay) {
+        moves.push(weRay);
+      }
+    }
+
+    return moves;
   }
 
   generateQueenMoves(square: bigint) {

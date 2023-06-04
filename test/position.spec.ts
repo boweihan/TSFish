@@ -20,13 +20,41 @@ const prettyPrint = (board: bigint) => {
 
 prettyPrint(
   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-    .generateBishopMoves(
-      BigInt(0b0000000000000000000000000000000000000100000000000000000000000000)
+    .generateRookMoves(
+      BigInt(0b0000000000000000000000000000000000000000100000000000000000000000)
     )
     .reduce((a, b) => a | b)
 );
 
 describe("Position", () => {
+  it("generates rook moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateRookMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000100000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual(
+      "1000000010000000100000001000000010000000011111111000000010000000"
+    );
+  });
+
+  it("generates rook moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateRookMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000100000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10000000100000001000000010011111011000001000000010000000100");
+  });
+
   it("generates bishop moves", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
