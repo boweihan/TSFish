@@ -302,7 +302,9 @@ export class PositionImpl implements Position {
   }
 
   generateQueenMoves(square: bigint) {
-    // TODO: implement
+    return this.generateBishopMoves(square).concat(
+      this.generateRookMoves(square)
+    );
   }
 
   generateKingMoves(square: bigint) {

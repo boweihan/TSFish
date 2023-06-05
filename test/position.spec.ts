@@ -20,13 +20,43 @@ const prettyPrint = (board: bigint) => {
 
 prettyPrint(
   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-    .generateRookMoves(
-      BigInt(0b0000000000000000000000000000000000000000100000000000000000000000)
+    .generateQueenMoves(
+      BigInt(0b0000000000000000000000000000000000000100000000000000000000000000)
     )
     .reduce((a, b) => a | b)
 );
 
 describe("Position", () => {
+  it("generates queen moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateQueenMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000100000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual(
+      "1000010010001000100100001010000011000000011111111100000010100000"
+    );
+  });
+
+  it("generates queen moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generateQueenMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000100000000000000000000000000
+          )
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual(
+      "100010000100100000101010000111011111011000011100001010100100100"
+    );
+  });
+
   it("generates rook moves", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
