@@ -7,7 +7,12 @@ import {
   isValidCastlingRights,
   isValidPlayerColor,
 } from "../types";
-import { ClassicalBoards, generateEmptyBoard } from "../datatypes/bitboard";
+import {
+  ClassicalBoards,
+  generateEmptyBoard,
+  boardsToBitBoards,
+  ClassicalBitBoards,
+} from "../datatypes/bitboard";
 import { Color, Masks, Max64BitInt, Rank2, Rank7 } from "../constants";
 
 type State = {
@@ -21,17 +26,17 @@ type State = {
 export const StartPosition = "startpos";
 
 export interface Position {
-  board: ClassicalBoards;
+  board: ClassicalBitBoards;
   state: State;
 }
 
 export class PositionImpl implements Position {
-  board: ClassicalBoards;
+  board: ClassicalBitBoards;
   state: State;
 
   constructor(fen?: string) {
     fen = fen || StartPosition;
-    this.board = this.fenToBoard(fen);
+    this.board = boardsToBitBoards(this.fenToBoard(fen));
     this.state = this.fenToState(fen);
   }
 
@@ -129,11 +134,52 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
+  makeMove() {
+    // TODO: implement
+  }
+
+  undoMove() {
+    // TODO: implement
+  }
+
   generateMoves() {
-    // for all pieces
-    // generate move targets
-    // for all capture targets generate captures (move or capture list)
-    // for all empty square targets generate quiet moves (move list)
+    const generateMovesForPiece = (board: bigint, callback: Function) => {
+      let moves = [];
+      while (board) {
+        const ls1b = this.getLS1B(board);
+        moves.push(callback(ls1b));
+        board ^= ls1b; // remove ls1b from board
+      }
+      return moves;
+    };
+
+    const partialRight = (fn: Function, ...presetArgs: any[]) => {
+      return function partiallyApplied(...laterArgs: any[]) {
+        return fn(...laterArgs, ...presetArgs);
+      };
+    };
+
+    // white
+    generateMovesForPiece(
+      this.board.w.pawns,
+      partialRight(this.generatePawnMoves, "w")
+    );
+    generateMovesForPiece(this.board.w.knights, this.generateKnightMoves);
+    generateMovesForPiece(this.board.w.bishops, this.generateBishopMoves);
+    generateMovesForPiece(this.board.w.rooks, this.generateRookMoves);
+    generateMovesForPiece(this.board.w.queens, this.generateQueenMoves);
+    generateMovesForPiece(this.board.w.kings, this.generateKingMoves);
+
+    // black
+    generateMovesForPiece(
+      this.board.b.pawns,
+      partialRight(this.generatePawnMoves, "b")
+    );
+    generateMovesForPiece(this.board.b.knights, this.generateKnightMoves);
+    generateMovesForPiece(this.board.b.bishops, this.generateBishopMoves);
+    generateMovesForPiece(this.board.b.rooks, this.generateRookMoves);
+    generateMovesForPiece(this.board.b.queens, this.generateQueenMoves);
+    generateMovesForPiece(this.board.b.kings, this.generateKingMoves);
   }
 
   encodeMoves() {
@@ -346,14 +392,6 @@ export class PositionImpl implements Position {
       (startpos << BigInt(1)) & Masks.NOT_A_FILE, // we
       (startpos << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ].filter(Boolean);
-  }
-
-  move() {
-    // TODO: implement
-  }
-
-  undoMove() {
-    // TODO: implement
   }
 
   set(board: bigint, square: bigint): bigint {
