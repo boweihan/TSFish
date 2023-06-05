@@ -20,13 +20,72 @@ const prettyPrint = (board: bigint) => {
 
 prettyPrint(
   new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-    .generateQueenMoves(
-      BigInt(0b0000000000000000000000000000000000000100000000000000000000000000)
+    .generatePawnAttacks(
+      BigInt(
+        0b0000000000000000000000000000000000000000000100000000000000000000
+      ),
+      "b"
     )
     .reduce((a, b) => a | b)
 );
 
 describe("Position", () => {
+  it("generates pawn attacks", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnAttacks(
+          BigInt(
+            0b0000000000000000000000000000000000000000000100000000000000000000
+          ),
+          "b"
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10100000000000");
+  });
+
+  it("generates pawn attacks", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnAttacks(
+          BigInt(
+            0b0000000000000000000000000000000000000000000100000000000000000000
+          ),
+          "w"
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("101000000000000000000000000000");
+  });
+
+  it("generates pawn attacks", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnAttacks(
+          BigInt(
+            0b0000000000000000000000000000000000000000100000000000000000000000
+          ),
+          "b"
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("100000000000000");
+  });
+
+  it("generates pawn attacks", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnAttacks(
+          BigInt(
+            0b0000000000000000000000000000000000000000100000000000000000000000
+          ),
+          "w"
+        )
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("1000000000000000000000000000000");
+  });
+
   it("generates queen moves", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")

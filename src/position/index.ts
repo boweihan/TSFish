@@ -179,6 +179,32 @@ export class PositionImpl implements Position {
     return moves;
   }
 
+  generatePawnAttacks(square: bigint, color: PlayerColor) {
+    let startpos = this.set(BigInt(0), square);
+
+    const attacks = [];
+
+    switch (color) {
+      case "w":
+        if ((startpos << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
+          attacks.push(startpos << BigInt(7));
+        if ((startpos << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
+          attacks.push(startpos << BigInt(9));
+        break;
+      case "b":
+        if ((startpos >> BigInt(7)) & Masks.NOT_A_FILE)
+          attacks.push(startpos >> BigInt(7));
+        if ((startpos >> BigInt(9)) & Masks.NOT_H_FILE) {
+          attacks.push(startpos >> BigInt(9));
+        }
+        break;
+      default:
+        throw new Error("invalid player color!");
+    }
+
+    return attacks;
+  }
+
   generateKnightMoves(square: bigint) {
     let startpos = this.set(BigInt(0), square);
 
