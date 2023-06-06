@@ -141,7 +141,16 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
-  makeMove() {}
+  makeMove(move: Move) {
+    // put move in board history (for undo)
+    // handle quiet move
+    // handle capture
+    // handle castle
+    // handle en passant
+    // handle promotion
+    // update board state
+    // validate that king isn't in check due to pseudo-legal move generation
+  }
 
   undoMove() {
     // TODO: implement
