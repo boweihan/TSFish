@@ -12,8 +12,17 @@ import {
   generateEmptyBoard,
   boardsToBitBoards,
   ClassicalBitBoards,
+  BitBoard,
 } from "../datatypes/bitboard";
-import { Color, Masks, Max64BitInt, Rank2, Rank7 } from "../constants";
+import {
+  Color,
+  Masks,
+  Max64BitInt,
+  MoveType,
+  Rank2,
+  Rank7,
+} from "../constants";
+import { Move, MoveKind } from "../datatypes/move";
 
 type State = {
   activeColor: PlayerColor;
@@ -143,14 +152,17 @@ export class PositionImpl implements Position {
   }
 
   generateMoves() {
-    const generateMovesForPiece = (board: bigint, callback: Function) => {
-      let moves = [];
+    let moves: Move[] = [];
+
+    const generateMovesForPiece = (
+      board: bigint,
+      callback: (...args: any[]) => Move[]
+    ) => {
       while (board) {
         const ls1b = this.getLS1B(board);
-        moves.push(callback(ls1b));
+        moves.concat(callback(ls1b));
         board ^= ls1b; // remove ls1b from board
       }
-      return moves;
     };
 
     const partialRight = (fn: Function, ...presetArgs: any[]) => {
@@ -180,6 +192,8 @@ export class PositionImpl implements Position {
     generateMovesForPiece(this.board.b.rooks, this.generateRookMoves);
     generateMovesForPiece(this.board.b.queens, this.generateQueenMoves);
     generateMovesForPiece(this.board.b.kings, this.generateKingMoves);
+
+    return moves;
   }
 
   encodeMoves() {
@@ -193,28 +207,34 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  generatePawnMoves(square: bigint, color: PlayerColor) {
-    let startpos = this.set(BigInt(0), square);
-
+  generatePawnMoves(from: bigint, color: PlayerColor): Move[] {
     const moves = [];
 
     switch (color) {
       case "w":
         // single push
-        if ((startpos << BigInt(8)) & Max64BitInt)
-          moves.push(startpos << BigInt(8)); // ensure pawn pushes don't go off the board for white
+        if ((from << BigInt(8)) & Max64BitInt)
+          moves.push({ from, to: from << BigInt(8), kind: MoveType.Quiet }); // ensure pawn pushes don't go off the board for white
         // double push
-        if (startpos & Rank2 & Max64BitInt) {
-          moves.push(startpos << BigInt(16));
+        if (from & Rank2 & Max64BitInt) {
+          moves.push({
+            from,
+            to: from << BigInt(16),
+            kind: MoveType.DoublePawnPush,
+          });
         }
         // promotion
         break;
       case "b":
         // single push
-        moves.push(startpos >> BigInt(8));
+        moves.push({ from, to: from >> BigInt(8), kind: MoveType.Quiet });
         // double push
-        if (startpos & Rank7) {
-          moves.push(startpos >> BigInt(16));
+        if (from & Rank7) {
+          moves.push({
+            from,
+            to: from >> BigInt(16),
+            kind: MoveType.DoublePawnPush,
+          });
         }
         // promotion
         break;
@@ -225,23 +245,21 @@ export class PositionImpl implements Position {
     return moves;
   }
 
-  generatePawnAttacks(square: bigint, color: PlayerColor) {
-    let startpos = this.set(BigInt(0), square);
-
+  generatePawnAttacks(from: bigint, color: PlayerColor): Move[] {
     const attacks = [];
 
     switch (color) {
       case "w":
-        if ((startpos << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
-          attacks.push(startpos << BigInt(7));
-        if ((startpos << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
-          attacks.push(startpos << BigInt(9));
+        if ((from << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
+          attacks.push({ from, to: from << BigInt(7), kind: MoveType.Capture });
+        if ((from << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
+          attacks.push({ from, to: from << BigInt(9), kind: MoveType.Capture });
         break;
       case "b":
-        if ((startpos >> BigInt(7)) & Masks.NOT_A_FILE)
-          attacks.push(startpos >> BigInt(7));
-        if ((startpos >> BigInt(9)) & Masks.NOT_H_FILE) {
-          attacks.push(startpos >> BigInt(9));
+        if ((from >> BigInt(7)) & Masks.NOT_A_FILE)
+          attacks.push({ from, to: from >> BigInt(7), kind: MoveType.Capture });
+        if ((from >> BigInt(9)) & Masks.NOT_H_FILE) {
+          attacks.push({ from, to: from >> BigInt(9), kind: MoveType.Capture });
         }
         break;
       default:
@@ -251,28 +269,26 @@ export class PositionImpl implements Position {
     return attacks;
   }
 
-  generateKnightMoves(square: bigint) {
-    let startpos = this.set(BigInt(0), square);
-
+  generateKnightMoves(from: bigint): Move[] {
     return [
-      (startpos << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
-      (startpos << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
-      (startpos >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
-      (startpos >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
-      (startpos << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
-      (startpos << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
-      (startpos >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
-      (startpos >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
-    ].filter(Boolean);
+      (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
+      (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
+      (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
+      (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
+      (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
+      (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
+      (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
+      (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+    ]
+      .filter(Boolean)
+      .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
   }
 
-  generateBishopMoves(square: bigint) {
-    let startpos = this.set(BigInt(0), square);
-
+  generateBishopMoves(from: bigint): Move[] {
     const moves = [];
 
     // loop through each of the directions and add to the moveset
-    let noEaRay = startpos;
+    let noEaRay = from;
 
     while (noEaRay) {
       noEaRay <<= BigInt(7);
@@ -280,11 +296,11 @@ export class PositionImpl implements Position {
       noEaRay &= Masks.NOT_H_FILE;
 
       if (noEaRay) {
-        moves.push(noEaRay);
+        moves.push({ from, to: noEaRay, kind: MoveType.Quiet });
       }
     }
 
-    let noWeRay = startpos;
+    let noWeRay = from;
 
     while (noWeRay) {
       noWeRay <<= BigInt(9);
@@ -292,106 +308,102 @@ export class PositionImpl implements Position {
       noWeRay &= Masks.NOT_A_FILE;
 
       if (noWeRay) {
-        moves.push(noWeRay);
+        moves.push({ from, to: noWeRay, kind: MoveType.Quiet });
       }
     }
 
-    let soEaRay = startpos;
+    let soEaRay = from;
 
     while (soEaRay) {
       soEaRay >>= BigInt(9);
       soEaRay &= Masks.NOT_H_FILE;
 
       if (soEaRay) {
-        moves.push(soEaRay);
+        moves.push({ from, to: soEaRay, kind: MoveType.Quiet });
       }
     }
 
-    let soWeRay = startpos;
+    let soWeRay = from;
 
     while (soWeRay) {
       soWeRay >>= BigInt(7);
       soWeRay &= Masks.NOT_A_FILE;
 
       if (soWeRay) {
-        moves.push(soWeRay);
+        moves.push({ from, to: soWeRay, kind: MoveType.Quiet });
       }
     }
 
     return moves;
   }
 
-  generateRookMoves(square: bigint) {
-    let startpos = this.set(BigInt(0), square);
-
+  generateRookMoves(from: bigint): Move[] {
     const moves = [];
 
     // loop through each of the directions and add to the moveset
-    let noRay = startpos;
+    let noRay = from;
 
     while (noRay) {
       noRay <<= BigInt(8);
       noRay &= Max64BitInt;
 
       if (noRay) {
-        moves.push(noRay);
+        moves.push({ from, to: noRay, kind: MoveType.Quiet });
       }
     }
 
-    let eaRay = startpos;
+    let eaRay = from;
 
     while (eaRay) {
       eaRay >>= BigInt(1);
       eaRay &= Masks.NOT_H_FILE;
 
       if (eaRay) {
-        moves.push(eaRay);
+        moves.push({ from, to: eaRay, kind: MoveType.Quiet });
       }
     }
 
-    let soRay = startpos;
+    let soRay = from;
 
     while (soRay) {
       soRay >>= BigInt(8);
 
       if (soRay) {
-        moves.push(soRay);
+        moves.push({ from, to: soRay, kind: MoveType.Quiet });
       }
     }
 
-    let weRay = startpos;
+    let weRay = from;
 
     while (weRay) {
       weRay <<= BigInt(1);
       weRay &= Masks.NOT_A_FILE;
 
       if (weRay) {
-        moves.push(weRay);
+        moves.push({ from, to: weRay, kind: MoveType.Quiet });
       }
     }
 
     return moves;
   }
 
-  generateQueenMoves(square: bigint) {
-    return this.generateBishopMoves(square).concat(
-      this.generateRookMoves(square)
-    );
+  generateQueenMoves(from: bigint): Move[] {
+    return this.generateBishopMoves(from).concat(this.generateRookMoves(from));
   }
 
-  generateKingMoves(square: bigint) {
-    let startpos = this.set(BigInt(0), square);
-
+  generateKingMoves(from: bigint): Move[] {
     return [
-      startpos << BigInt(8), // no
-      (startpos << BigInt(7)) & Masks.NOT_H_FILE, // noEa
-      (startpos >> BigInt(1)) & Masks.NOT_H_FILE, // ea
-      (startpos >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
-      startpos >> BigInt(8), // so
-      (startpos >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
-      (startpos << BigInt(1)) & Masks.NOT_A_FILE, // we
-      (startpos << BigInt(9)) & Masks.NOT_A_FILE, // noWe
-    ].filter(Boolean);
+      from << BigInt(8), // no
+      (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
+      (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
+      (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
+      from >> BigInt(8), // so
+      (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
+      (from << BigInt(1)) & Masks.NOT_A_FILE, // we
+      (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
+    ]
+      .filter(Boolean)
+      .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
   }
 
   set(board: bigint, square: bigint): bigint {

@@ -246,6 +246,24 @@ export const Squares = {
   ),
 };
 
+// ordinal represents binary index of a square
+export const MoveType = {
+  Quiet: BigInt(0),
+  DoublePawnPush: BigInt(1),
+  KingCastle: BigInt(2),
+  QueenCastle: BigInt(3),
+  Capture: BigInt(4),
+  EnPassant: BigInt(5),
+  KnightPromotion: BigInt(6),
+  BishopPromotion: BigInt(7),
+  RookPromotion: BigInt(8),
+  QueenPromotion: BigInt(9),
+  KnightPromoCapture: BigInt(10),
+  BishopPromoCapture: BigInt(11),
+  RookPromoCapture: BigInt(12),
+  QueenPromoCapture: BigInt(13),
+};
+
 export const Max64BitInt = BigInt("18446744073709551615");
 export const Rank2 = BigInt("65280");
 export const Rank7 = BigInt("143552238122434560");
