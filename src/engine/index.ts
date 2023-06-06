@@ -30,7 +30,7 @@ export default class UCIEngine {
       case EngineInput.GO:
         break;
       case EngineInput.PERFT:
-        // not implemented
+        new PositionImpl().perft(1);
         break;
       default:
         // send to engine thread

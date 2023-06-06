@@ -12,17 +12,17 @@ import {
   generateEmptyBoard,
   boardsToBitBoards,
   ClassicalBitBoards,
-  BitBoard,
 } from "../datatypes/bitboard";
 import {
   Color,
+  DefaultFEN,
   Masks,
   Max64BitInt,
   MoveType,
   Rank2,
   Rank7,
 } from "../constants";
-import { Move, MoveKind } from "../datatypes/move";
+import { Move } from "../datatypes/move";
 
 type State = {
   activeColor: PlayerColor;
@@ -31,8 +31,6 @@ type State = {
   halfMoveClock: HalfMoveClock;
   fullMoveNumber: FullMoveNumber;
 };
-
-export const StartPosition = "startpos";
 
 export interface Position {
   board: ClassicalBitBoards;
@@ -44,7 +42,7 @@ export class PositionImpl implements Position {
   state: State;
 
   constructor(fen?: string) {
-    fen = fen || StartPosition;
+    fen = fen || DefaultFEN;
     this.board = boardsToBitBoards(this.fenToBoard(fen));
     this.state = this.fenToState(fen);
   }
@@ -143,9 +141,7 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
-  makeMove() {
-    // TODO: implement
-  }
+  makeMove() {}
 
   undoMove() {
     // TODO: implement
@@ -160,7 +156,8 @@ export class PositionImpl implements Position {
     ) => {
       while (board) {
         const ls1b = this.getLS1B(board);
-        moves.concat(callback(ls1b));
+        console.log(ls1b);
+        moves = moves.concat(callback(ls1b));
         board ^= ls1b; // remove ls1b from board
       }
     };
@@ -196,8 +193,34 @@ export class PositionImpl implements Position {
     return moves;
   }
 
-  encodeMoves() {
-    // TODO: implement
+  perft(depth: number) {
+    const start = performance.now();
+    const moves = this.generateMoves();
+
+    if (depth === 1) {
+      const end = performance.now();
+      const time = end - start;
+      const nodes = moves.length;
+
+      console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+
+      return moves.length;
+    }
+
+    // let nodes = 0;
+
+    // for (let move of moves) {
+    //   this.makeMove(move);
+    //   nodes += this.perft(depth - 1);
+    //   this.undoMove();
+    // }
+
+    // const end = performance.now();
+    // const time = end - start;
+
+    // console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+
+    // return nodes;
   }
 
   getLS1B(board: bigint) {
@@ -207,7 +230,7 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  generatePawnMoves(from: bigint, color: PlayerColor): Move[] {
+  generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
     const moves = [];
 
     switch (color) {
@@ -243,9 +266,9 @@ export class PositionImpl implements Position {
     }
 
     return moves;
-  }
+  };
 
-  generatePawnAttacks(from: bigint, color: PlayerColor): Move[] {
+  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
     const attacks = [];
 
     switch (color) {
@@ -267,9 +290,9 @@ export class PositionImpl implements Position {
     }
 
     return attacks;
-  }
+  };
 
-  generateKnightMoves(from: bigint): Move[] {
+  generateKnightMoves = (from: bigint): Move[] => {
     return [
       (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
       (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
@@ -282,9 +305,9 @@ export class PositionImpl implements Position {
     ]
       .filter(Boolean)
       .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
-  }
+  };
 
-  generateBishopMoves(from: bigint): Move[] {
+  generateBishopMoves = (from: bigint): Move[] => {
     const moves = [];
 
     // loop through each of the directions and add to the moveset
@@ -335,9 +358,9 @@ export class PositionImpl implements Position {
     }
 
     return moves;
-  }
+  };
 
-  generateRookMoves(from: bigint): Move[] {
+  generateRookMoves = (from: bigint): Move[] => {
     const moves = [];
 
     // loop through each of the directions and add to the moveset
@@ -385,13 +408,13 @@ export class PositionImpl implements Position {
     }
 
     return moves;
-  }
+  };
 
-  generateQueenMoves(from: bigint): Move[] {
+  generateQueenMoves = (from: bigint): Move[] => {
     return this.generateBishopMoves(from).concat(this.generateRookMoves(from));
-  }
+  };
 
-  generateKingMoves(from: bigint): Move[] {
+  generateKingMoves = (from: bigint): Move[] => {
     return [
       from << BigInt(8), // no
       (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
@@ -404,7 +427,7 @@ export class PositionImpl implements Position {
     ]
       .filter(Boolean)
       .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
-  }
+  };
 
   set(board: bigint, square: bigint): bigint {
     return (board |= square);
