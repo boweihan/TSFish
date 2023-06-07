@@ -248,20 +248,20 @@ export const Squares = {
 
 // ordinal represents binary index of a square
 export const MoveType = {
-  Quiet: BigInt(0),
-  DoublePawnPush: BigInt(1),
-  KingCastle: BigInt(2),
-  QueenCastle: BigInt(3),
-  Capture: BigInt(4),
-  EnPassant: BigInt(5),
-  KnightPromotion: BigInt(6),
-  BishopPromotion: BigInt(7),
-  RookPromotion: BigInt(8),
-  QueenPromotion: BigInt(9),
-  KnightPromoCapture: BigInt(10),
-  BishopPromoCapture: BigInt(11),
-  RookPromoCapture: BigInt(12),
-  QueenPromoCapture: BigInt(13),
+  QUIET: BigInt(0),
+  DOUBLE_PAWN_PUSH: BigInt(1),
+  KING_CASTLE: BigInt(2),
+  QUEEN_CASTLE: BigInt(3),
+  CAPTURE: BigInt(4),
+  EN_PASSANT: BigInt(5),
+  KNIGHT_PROMOTION: BigInt(6),
+  BISHOP_PROMOTION: BigInt(7),
+  ROOK_PROMOTION: BigInt(8),
+  QUEEN_PROMOTION: BigInt(9),
+  KNIGHT_PROMO_CAPTURE: BigInt(10),
+  BISHOP_PROMO_CAPTURE: BigInt(11),
+  ROOK_PROMO_CAPTURE: BigInt(12),
+  QUEEN_PROMO_CAPTURE: BigInt(13),
 };
 
 export const Max64BitInt = BigInt("18446744073709551615");

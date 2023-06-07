@@ -40,11 +40,13 @@ export interface Position {
 export class PositionImpl implements Position {
   board: ClassicalBitBoards;
   state: State;
+  history: Move[];
 
   constructor(fen?: string) {
     fen = fen || DefaultFEN;
     this.board = boardsToBitBoards(this.fenToBoard(fen));
     this.state = this.fenToState(fen);
+    this.history = [];
   }
 
   private fenToBoard = (fen: string): ClassicalBoards => {
@@ -143,8 +145,14 @@ export class PositionImpl implements Position {
 
   makeMove(move: Move) {
     // put move in board history (for undo)
-    // handle quiet move
+    this.history.push(move);
+
+    // handle QUIET move
+    move.kind === MoveType.QUIET && this.makeQUIETMove(move);
+
     // handle capture
+    move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
+
     // handle castle
     // handle en passant
     // handle promotion
@@ -152,7 +160,14 @@ export class PositionImpl implements Position {
     // validate that king isn't in check due to pseudo-legal move generation
   }
 
+  private makeQUIETMove(move: Move) {}
+
+  private makeCaptureMove(move: Move) {}
+
   undoMove() {
+    // retrieve move from board history
+    const move = this.history.pop();
+
     // TODO: implement
   }
 
@@ -246,26 +261,26 @@ export class PositionImpl implements Position {
       case "w":
         // single push
         if ((from << BigInt(8)) & Max64BitInt)
-          moves.push({ from, to: from << BigInt(8), kind: MoveType.Quiet }); // ensure pawn pushes don't go off the board for white
+          moves.push({ from, to: from << BigInt(8), kind: MoveType.QUIET }); // ensure pawn pushes don't go off the board for white
         // double push
         if (from & Rank2 & Max64BitInt) {
           moves.push({
             from,
             to: from << BigInt(16),
-            kind: MoveType.DoublePawnPush,
+            kind: MoveType.DOUBLE_PAWN_PUSH,
           });
         }
         // promotion
         break;
       case "b":
         // single push
-        moves.push({ from, to: from >> BigInt(8), kind: MoveType.Quiet });
+        moves.push({ from, to: from >> BigInt(8), kind: MoveType.QUIET });
         // double push
         if (from & Rank7) {
           moves.push({
             from,
             to: from >> BigInt(16),
-            kind: MoveType.DoublePawnPush,
+            kind: MoveType.DOUBLE_PAWN_PUSH,
           });
         }
         // promotion
@@ -283,15 +298,15 @@ export class PositionImpl implements Position {
     switch (color) {
       case "w":
         if ((from << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
-          attacks.push({ from, to: from << BigInt(7), kind: MoveType.Capture });
+          attacks.push({ from, to: from << BigInt(7), kind: MoveType.CAPTURE });
         if ((from << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
-          attacks.push({ from, to: from << BigInt(9), kind: MoveType.Capture });
+          attacks.push({ from, to: from << BigInt(9), kind: MoveType.CAPTURE });
         break;
       case "b":
         if ((from >> BigInt(7)) & Masks.NOT_A_FILE)
-          attacks.push({ from, to: from >> BigInt(7), kind: MoveType.Capture });
+          attacks.push({ from, to: from >> BigInt(7), kind: MoveType.CAPTURE });
         if ((from >> BigInt(9)) & Masks.NOT_H_FILE) {
-          attacks.push({ from, to: from >> BigInt(9), kind: MoveType.Capture });
+          attacks.push({ from, to: from >> BigInt(9), kind: MoveType.CAPTURE });
         }
         break;
       default:
@@ -313,7 +328,7 @@ export class PositionImpl implements Position {
       (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
     ]
       .filter(Boolean)
-      .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
+      .map((to) => ({ from, to, kind: MoveType.QUIET })); // TODO: add captures
   };
 
   generateBishopMoves = (from: bigint): Move[] => {
@@ -328,7 +343,7 @@ export class PositionImpl implements Position {
       noEaRay &= Masks.NOT_H_FILE;
 
       if (noEaRay) {
-        moves.push({ from, to: noEaRay, kind: MoveType.Quiet });
+        moves.push({ from, to: noEaRay, kind: MoveType.QUIET });
       }
     }
 
@@ -340,7 +355,7 @@ export class PositionImpl implements Position {
       noWeRay &= Masks.NOT_A_FILE;
 
       if (noWeRay) {
-        moves.push({ from, to: noWeRay, kind: MoveType.Quiet });
+        moves.push({ from, to: noWeRay, kind: MoveType.QUIET });
       }
     }
 
@@ -351,7 +366,7 @@ export class PositionImpl implements Position {
       soEaRay &= Masks.NOT_H_FILE;
 
       if (soEaRay) {
-        moves.push({ from, to: soEaRay, kind: MoveType.Quiet });
+        moves.push({ from, to: soEaRay, kind: MoveType.QUIET });
       }
     }
 
@@ -362,7 +377,7 @@ export class PositionImpl implements Position {
       soWeRay &= Masks.NOT_A_FILE;
 
       if (soWeRay) {
-        moves.push({ from, to: soWeRay, kind: MoveType.Quiet });
+        moves.push({ from, to: soWeRay, kind: MoveType.QUIET });
       }
     }
 
@@ -380,7 +395,7 @@ export class PositionImpl implements Position {
       noRay &= Max64BitInt;
 
       if (noRay) {
-        moves.push({ from, to: noRay, kind: MoveType.Quiet });
+        moves.push({ from, to: noRay, kind: MoveType.QUIET });
       }
     }
 
@@ -391,7 +406,7 @@ export class PositionImpl implements Position {
       eaRay &= Masks.NOT_H_FILE;
 
       if (eaRay) {
-        moves.push({ from, to: eaRay, kind: MoveType.Quiet });
+        moves.push({ from, to: eaRay, kind: MoveType.QUIET });
       }
     }
 
@@ -401,7 +416,7 @@ export class PositionImpl implements Position {
       soRay >>= BigInt(8);
 
       if (soRay) {
-        moves.push({ from, to: soRay, kind: MoveType.Quiet });
+        moves.push({ from, to: soRay, kind: MoveType.QUIET });
       }
     }
 
@@ -412,7 +427,7 @@ export class PositionImpl implements Position {
       weRay &= Masks.NOT_A_FILE;
 
       if (weRay) {
-        moves.push({ from, to: weRay, kind: MoveType.Quiet });
+        moves.push({ from, to: weRay, kind: MoveType.QUIET });
       }
     }
 
@@ -435,7 +450,7 @@ export class PositionImpl implements Position {
       (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ]
       .filter(Boolean)
-      .map((to) => ({ from, to, kind: MoveType.Quiet })); // TODO: add captures
+      .map((to) => ({ from, to, kind: MoveType.QUIET })); // TODO: add captures
   };
 
   set(board: bigint, square: bigint): bigint {
