@@ -32,20 +32,20 @@ prettyPrint(
 );
 
 describe("Position", () => {
-  it("makes a quiet move", () => {
+  it("makes a capture", () => {
     const position = new PositionImpl(
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2"
     );
     position.makeMove({
-      from: Squares.a2,
-      to: Squares.a3,
-      kind: MoveType.QUIET,
+      from: Squares.d4,
+      to: Squares.e5,
+      kind: MoveType.CAPTURE,
     });
     expect(position.board.w.piece.toString(2)).toEqual(
-      "100000000111111111111111"
+      "100000000000000000001110111111111111"
     );
     expect(position.board.w.pawn.toString(2)).toEqual(
-      "100000000111111100000000"
+      "100000000000000000001110111100000000"
     );
   });
 
