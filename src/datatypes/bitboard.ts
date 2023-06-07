@@ -14,26 +14,26 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R["length"] extends N
 export type BitBoard = bigint;
 
 export type ColoredBitBoards = {
-  pieces: BitBoard;
-  kings: BitBoard;
-  queens: BitBoard;
-  rooks: BitBoard;
-  bishops: BitBoard;
-  knights: BitBoard;
-  pawns: BitBoard;
+  piece: BitBoard;
+  king: BitBoard;
+  queen: BitBoard;
+  rook: BitBoard;
+  bishop: BitBoard;
+  knight: BitBoard;
+  pawn: BitBoard;
 };
 
 export type ClassicalBitBoards = {
   [K in PlayerColor]: ColoredBitBoards;
 };
 export type ColoredBoards = {
-  pieces: Board;
-  kings: Board;
-  queens: Board;
-  rooks: Board;
-  bishops: Board;
-  knights: Board;
-  pawns: Board;
+  piece: Board;
+  king: Board;
+  queen: Board;
+  rook: Board;
+  bishop: Board;
+  knight: Board;
+  pawn: Board;
 };
 
 export type ClassicalBoards = {
@@ -56,22 +56,22 @@ export const EmptyBoard = [
 
 export const generateEmptyBoard = (): ClassicalBoards => ({
   w: {
-    pieces: [...EmptyBoard] as Board,
-    kings: [...EmptyBoard] as Board,
-    queens: [...EmptyBoard] as Board,
-    rooks: [...EmptyBoard] as Board,
-    bishops: [...EmptyBoard] as Board,
-    knights: [...EmptyBoard] as Board,
-    pawns: [...EmptyBoard] as Board,
+    piece: [...EmptyBoard] as Board,
+    king: [...EmptyBoard] as Board,
+    queen: [...EmptyBoard] as Board,
+    rook: [...EmptyBoard] as Board,
+    bishop: [...EmptyBoard] as Board,
+    knight: [...EmptyBoard] as Board,
+    pawn: [...EmptyBoard] as Board,
   },
   b: {
-    pieces: [...EmptyBoard] as Board,
-    kings: [...EmptyBoard] as Board,
-    queens: [...EmptyBoard] as Board,
-    rooks: [...EmptyBoard] as Board,
-    bishops: [...EmptyBoard] as Board,
-    knights: [...EmptyBoard] as Board,
-    pawns: [...EmptyBoard] as Board,
+    piece: [...EmptyBoard] as Board,
+    king: [...EmptyBoard] as Board,
+    queen: [...EmptyBoard] as Board,
+    rook: [...EmptyBoard] as Board,
+    bishop: [...EmptyBoard] as Board,
+    knight: [...EmptyBoard] as Board,
+    pawn: [...EmptyBoard] as Board,
   },
 });
 
@@ -88,22 +88,22 @@ export const boardsToBitBoards = (
 ): ClassicalBitBoards => {
   return {
     w: {
-      pieces: boardToBitBoard(boards.w.pieces),
-      kings: boardToBitBoard(boards.w.kings),
-      queens: boardToBitBoard(boards.w.queens),
-      rooks: boardToBitBoard(boards.w.rooks),
-      bishops: boardToBitBoard(boards.w.bishops),
-      knights: boardToBitBoard(boards.w.knights),
-      pawns: boardToBitBoard(boards.w.pawns),
+      piece: boardToBitBoard(boards.w.piece),
+      king: boardToBitBoard(boards.w.king),
+      queen: boardToBitBoard(boards.w.queen),
+      rook: boardToBitBoard(boards.w.rook),
+      bishop: boardToBitBoard(boards.w.bishop),
+      knight: boardToBitBoard(boards.w.knight),
+      pawn: boardToBitBoard(boards.w.pawn),
     },
     b: {
-      pieces: boardToBitBoard(boards.b.pieces),
-      kings: boardToBitBoard(boards.b.kings),
-      queens: boardToBitBoard(boards.b.queens),
-      rooks: boardToBitBoard(boards.b.rooks),
-      bishops: boardToBitBoard(boards.b.bishops),
-      knights: boardToBitBoard(boards.b.knights),
-      pawns: boardToBitBoard(boards.b.pawns),
+      piece: boardToBitBoard(boards.b.piece),
+      king: boardToBitBoard(boards.b.king),
+      queen: boardToBitBoard(boards.b.queen),
+      rook: boardToBitBoard(boards.b.rook),
+      bishop: boardToBitBoard(boards.b.bishop),
+      knight: boardToBitBoard(boards.b.knight),
+      pawn: boardToBitBoard(boards.b.pawn),
     },
   };
 };

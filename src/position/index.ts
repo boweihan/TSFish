@@ -12,6 +12,7 @@ import {
   generateEmptyBoard,
   boardsToBitBoards,
   ClassicalBitBoards,
+  BitBoard,
 } from "../datatypes/bitboard";
 import {
   Color,
@@ -19,10 +20,11 @@ import {
   Masks,
   Max64BitInt,
   MoveType,
+  Pieces,
   Rank2,
   Rank7,
 } from "../constants";
-import { Move } from "../datatypes/move";
+import { Move, Piece } from "../datatypes/move";
 
 type State = {
   activeColor: PlayerColor;
@@ -50,8 +52,8 @@ export class PositionImpl implements Position {
   }
 
   private fenToBoard = (fen: string): ClassicalBoards => {
-    const pieces = fen.split(" ")[0];
-    const ranks = pieces.split("/");
+    const piece = fen.split(" ")[0];
+    const ranks = piece.split("/");
 
     let board = generateEmptyBoard();
 
@@ -64,33 +66,33 @@ export class PositionImpl implements Position {
           let position = (8 - rank) * 8 + file;
           const color = char === char.toLowerCase() ? Color.BLACK : Color.WHITE;
 
-          let populatePieces = (color: "b" | "w") => {
+          let populatePiece = (color: "b" | "w") => {
             switch (char.toLowerCase()) {
               case "p":
-                board[color].pawns[position] = 1;
+                board[color].pawn[position] = 1;
                 break;
               case "r":
-                board[color].rooks[position] = 1;
+                board[color].rook[position] = 1;
                 break;
               case "n":
-                board[color].knights[position] = 1;
+                board[color].knight[position] = 1;
                 break;
               case "b":
-                board[color].bishops[position] = 1;
+                board[color].bishop[position] = 1;
                 break;
               case "q":
-                board[color].queens[position] = 1;
+                board[color].queen[position] = 1;
                 break;
               case "k":
-                board[color].kings[position] = 1;
+                board[color].king[position] = 1;
                 break;
               default:
                 break;
             }
           };
 
-          board[color].pieces[position] = 1;
-          populatePieces(color);
+          board[color].piece[position] = 1;
+          populatePiece(color);
           file++;
         } else {
           // skip empty spaces
@@ -147,8 +149,8 @@ export class PositionImpl implements Position {
     // put move in board history (for undo)
     this.history.push(move);
 
-    // handle QUIET move
-    move.kind === MoveType.QUIET && this.makeQUIETMove(move);
+    // handle quiet move
+    move.kind === MoveType.QUIET && this.makeQuietMove(move);
 
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
@@ -160,9 +162,82 @@ export class PositionImpl implements Position {
     // validate that king isn't in check due to pseudo-legal move generation
   }
 
-  private makeQUIETMove(move: Move) {}
+  private determinePiece(from: BitBoard): Piece {
+    const { w, b } = this.board;
 
-  private makeCaptureMove(move: Move) {}
+    let piece;
+
+    if (w.pawn & from || b.pawn & from) {
+      piece = Pieces.PAWN;
+    } else if (w.knight & from || b.knight & from) {
+      piece = Pieces.KNIGHT;
+    } else if (w.bishop & from || b.bishop & from) {
+      piece = Pieces.BISHOP;
+    } else if (w.rook & from || b.rook & from) {
+      piece = Pieces.ROOK;
+    } else if (w.queen & from || b.queen & from) {
+      piece = Pieces.QUEEN;
+    } else if (w.king & from || b.king & from) {
+      piece = Pieces.KING;
+    } else {
+      throw new Error("Invalid piece");
+    }
+
+    return piece;
+  }
+
+  private makeQuietMove(move: Move) {
+    const { from, to } = move;
+
+    // check which color is moving
+    const color = this.board.w.piece & from ? "w" : "b";
+
+    // update pieces bitboard
+    this.board[color].piece = this.remove(this.board[color].piece, from);
+    this.board[color].piece = this.set(this.board[color].piece, to);
+
+    // update piece bitboard
+    const fromPiece = this.determinePiece(from);
+
+    this.board[color][fromPiece] = this.remove(
+      this.board[color][fromPiece],
+      from
+    );
+    this.board[color][fromPiece] = this.set(this.board[color][fromPiece], to);
+  }
+
+  private makeCaptureMove(move: Move) {
+    const { from, to } = move;
+
+    // check which color is moving
+    const color = this.board.w.piece & from ? "w" : "b";
+    const oppositeColor = color === "w" ? "b" : "w";
+
+    // update pieces bitboard
+    this.board[color].piece = this.remove(this.board[color].piece, from);
+    this.board[color].piece = this.set(this.board[color].piece, to);
+
+    // update piece bitboard
+    const fromPiece = this.determinePiece(from);
+
+    this.board[color][fromPiece] = this.remove(
+      this.board[color][fromPiece],
+      from
+    );
+    this.board[color][fromPiece] = this.set(this.board[color][fromPiece], to);
+
+    // update opponent's piece bitboard
+    const toPiece = this.determinePiece(to);
+
+    this.board[oppositeColor].piece = this.remove(
+      this.board[oppositeColor].piece,
+      to
+    );
+    this.board[oppositeColor][toPiece] = this.remove(
+      this.board[oppositeColor][toPiece],
+      to
+    );
+  }
 
   undoMove() {
     // retrieve move from board history
@@ -194,25 +269,25 @@ export class PositionImpl implements Position {
 
     // white
     generateMovesForPiece(
-      this.board.w.pawns,
+      this.board.w.pawn,
       partialRight(this.generatePawnMoves, "w")
     );
-    generateMovesForPiece(this.board.w.knights, this.generateKnightMoves);
-    generateMovesForPiece(this.board.w.bishops, this.generateBishopMoves);
-    generateMovesForPiece(this.board.w.rooks, this.generateRookMoves);
-    generateMovesForPiece(this.board.w.queens, this.generateQueenMoves);
-    generateMovesForPiece(this.board.w.kings, this.generateKingMoves);
+    generateMovesForPiece(this.board.w.knight, this.generateKnightMoves);
+    generateMovesForPiece(this.board.w.bishop, this.generateBishopMoves);
+    generateMovesForPiece(this.board.w.rook, this.generateRookMoves);
+    generateMovesForPiece(this.board.w.queen, this.generateQueenMoves);
+    generateMovesForPiece(this.board.w.king, this.generateKingMoves);
 
     // black
     generateMovesForPiece(
-      this.board.b.pawns,
+      this.board.b.pawn,
       partialRight(this.generatePawnMoves, "b")
     );
-    generateMovesForPiece(this.board.b.knights, this.generateKnightMoves);
-    generateMovesForPiece(this.board.b.bishops, this.generateBishopMoves);
-    generateMovesForPiece(this.board.b.rooks, this.generateRookMoves);
-    generateMovesForPiece(this.board.b.queens, this.generateQueenMoves);
-    generateMovesForPiece(this.board.b.kings, this.generateKingMoves);
+    generateMovesForPiece(this.board.b.knight, this.generateKnightMoves);
+    generateMovesForPiece(this.board.b.bishop, this.generateBishopMoves);
+    generateMovesForPiece(this.board.b.rook, this.generateRookMoves);
+    generateMovesForPiece(this.board.b.queen, this.generateQueenMoves);
+    generateMovesForPiece(this.board.b.king, this.generateKingMoves);
 
     return moves;
   }
@@ -261,7 +336,11 @@ export class PositionImpl implements Position {
       case "w":
         // single push
         if ((from << BigInt(8)) & Max64BitInt)
-          moves.push({ from, to: from << BigInt(8), kind: MoveType.QUIET }); // ensure pawn pushes don't go off the board for white
+          moves.push({
+            from,
+            to: from << BigInt(8),
+            kind: MoveType.QUIET,
+          }); // ensure pawn pushes don't go off the board for white
         // double push
         if (from & Rank2 & Max64BitInt) {
           moves.push({
@@ -274,7 +353,11 @@ export class PositionImpl implements Position {
         break;
       case "b":
         // single push
-        moves.push({ from, to: from >> BigInt(8), kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: from >> BigInt(8),
+          kind: MoveType.QUIET,
+        });
         // double push
         if (from & Rank7) {
           moves.push({
@@ -298,15 +381,31 @@ export class PositionImpl implements Position {
     switch (color) {
       case "w":
         if ((from << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
-          attacks.push({ from, to: from << BigInt(7), kind: MoveType.CAPTURE });
+          attacks.push({
+            from,
+            to: from << BigInt(7),
+            kind: MoveType.CAPTURE,
+          });
         if ((from << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
-          attacks.push({ from, to: from << BigInt(9), kind: MoveType.CAPTURE });
+          attacks.push({
+            from,
+            to: from << BigInt(9),
+            kind: MoveType.CAPTURE,
+          });
         break;
       case "b":
         if ((from >> BigInt(7)) & Masks.NOT_A_FILE)
-          attacks.push({ from, to: from >> BigInt(7), kind: MoveType.CAPTURE });
+          attacks.push({
+            from,
+            to: from >> BigInt(7),
+            kind: MoveType.CAPTURE,
+          });
         if ((from >> BigInt(9)) & Masks.NOT_H_FILE) {
-          attacks.push({ from, to: from >> BigInt(9), kind: MoveType.CAPTURE });
+          attacks.push({
+            from,
+            to: from >> BigInt(9),
+            kind: MoveType.CAPTURE,
+          });
         }
         break;
       default:
@@ -343,7 +442,11 @@ export class PositionImpl implements Position {
       noEaRay &= Masks.NOT_H_FILE;
 
       if (noEaRay) {
-        moves.push({ from, to: noEaRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: noEaRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -355,7 +458,11 @@ export class PositionImpl implements Position {
       noWeRay &= Masks.NOT_A_FILE;
 
       if (noWeRay) {
-        moves.push({ from, to: noWeRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: noWeRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -366,7 +473,11 @@ export class PositionImpl implements Position {
       soEaRay &= Masks.NOT_H_FILE;
 
       if (soEaRay) {
-        moves.push({ from, to: soEaRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: soEaRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -377,7 +488,11 @@ export class PositionImpl implements Position {
       soWeRay &= Masks.NOT_A_FILE;
 
       if (soWeRay) {
-        moves.push({ from, to: soWeRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: soWeRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -395,7 +510,11 @@ export class PositionImpl implements Position {
       noRay &= Max64BitInt;
 
       if (noRay) {
-        moves.push({ from, to: noRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: noRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -406,7 +525,11 @@ export class PositionImpl implements Position {
       eaRay &= Masks.NOT_H_FILE;
 
       if (eaRay) {
-        moves.push({ from, to: eaRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: eaRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -416,7 +539,11 @@ export class PositionImpl implements Position {
       soRay >>= BigInt(8);
 
       if (soRay) {
-        moves.push({ from, to: soRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: soRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -427,7 +554,11 @@ export class PositionImpl implements Position {
       weRay &= Masks.NOT_A_FILE;
 
       if (weRay) {
-        moves.push({ from, to: weRay, kind: MoveType.QUIET });
+        moves.push({
+          from,
+          to: weRay,
+          kind: MoveType.QUIET,
+        });
       }
     }
 
@@ -435,7 +566,11 @@ export class PositionImpl implements Position {
   };
 
   generateQueenMoves = (from: bigint): Move[] => {
-    return this.generateBishopMoves(from).concat(this.generateRookMoves(from));
+    return this.generateBishopMoves(from)
+      .concat(this.generateRookMoves(from))
+      .map((move) => ({
+        ...move,
+      }));
   };
 
   generateKingMoves = (from: bigint): Move[] => {

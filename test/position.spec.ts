@@ -1,3 +1,4 @@
+import { MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
@@ -31,6 +32,40 @@ prettyPrint(
 );
 
 describe("Position", () => {
+  it("makes a quiet move", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
+    position.makeMove({
+      from: Squares.a2,
+      to: Squares.a3,
+      kind: MoveType.QUIET,
+    });
+    expect(position.board.w.piece.toString(2)).toEqual(
+      "100000000111111111111111"
+    );
+    expect(position.board.w.pawn.toString(2)).toEqual(
+      "100000000111111100000000"
+    );
+  });
+
+  it("makes a quiet move", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
+    position.makeMove({
+      from: Squares.a2,
+      to: Squares.a3,
+      kind: MoveType.QUIET,
+    });
+    expect(position.board.w.piece.toString(2)).toEqual(
+      "100000000111111111111111"
+    );
+    expect(position.board.w.pawn.toString(2)).toEqual(
+      "100000000111111100000000"
+    );
+  });
+
   it("generates pawn attacks", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
@@ -336,7 +371,7 @@ describe("Position", () => {
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
         .set(BigInt(0), Squares.b1)
         .toString(2)
-    ).toEqual("1000000000000000000000000000000000000000000000000000000000");
+    ).toEqual("1000000");
   });
 
   it("removes a bit", () => {
@@ -351,7 +386,7 @@ describe("Position", () => {
     expect(
       new PositionImpl(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).board.w.bishops.toString(2)
+      ).board.w.bishop.toString(2)
     ).toEqual("100100");
   });
 
@@ -359,7 +394,7 @@ describe("Position", () => {
     expect(
       new PositionImpl(
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-      ).board.b.pawns.toString(2)
+      ).board.b.pawn.toString(2)
     ).toEqual("11111111000000000000000000000000000000000000000000000000");
   });
 
@@ -412,7 +447,7 @@ describe("Position", () => {
     expect(() => new PositionImpl(fen)).toThrow(`Invalid FEN: ${fen}`);
   });
 
-  it("correctly translates fen pieces to bitboard representation", () => {
+  it("correctly translates fen piece to bitboard representation", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
         .board
@@ -420,7 +455,7 @@ describe("Position", () => {
       boardsToBitBoards({
         w: {
           // prettier-ignore
-          bishops: [
+          bishop: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -431,7 +466,7 @@ describe("Position", () => {
             0, 0, 1, 0, 0, 1, 0, 0,
           ],
           // prettier-ignore
-          kings: [
+          king: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -442,7 +477,7 @@ describe("Position", () => {
             0, 0, 0, 0, 1, 0, 0, 0,
           ],
           // prettier-ignore
-          knights: [
+          knight: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -453,7 +488,7 @@ describe("Position", () => {
             0, 1, 0, 0, 0, 0, 1, 0,
           ],
           // prettier-ignore
-          pawns: [
+          pawn: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -464,7 +499,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          queens: [
+          queen: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -475,7 +510,7 @@ describe("Position", () => {
             0, 0, 0, 1, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          rooks: [
+          rook: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -486,7 +521,7 @@ describe("Position", () => {
             1, 0, 0, 0, 0, 0, 0, 1,
           ],
           // prettier-ignore
-          pieces: [
+          piece: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -499,7 +534,7 @@ describe("Position", () => {
         },
         b: {
           // prettier-ignore
-          bishops: [
+          bishop: [
             0, 0, 1, 0, 0, 1, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -510,7 +545,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pieces: [
+          piece: [
             1, 1, 1, 1, 1, 1, 1, 1,
             1, 1, 1, 1, 1, 1, 1, 1,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -521,7 +556,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          kings: [
+          king: [
             0, 0, 0, 0, 1, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -532,7 +567,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          knights: [
+          knight: [
             0, 1, 0, 0, 0, 0, 1, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -543,7 +578,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pawns: [
+          pawn: [
             0, 0, 0, 0, 0, 0, 0, 0,
             1, 1, 1, 1, 1, 1, 1, 1,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -554,7 +589,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          queens: [
+          queen: [
             0, 0, 0, 1, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -565,7 +600,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          rooks: [
+          rook: [
             1, 0, 0, 0, 0, 0, 0, 1,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -580,12 +615,12 @@ describe("Position", () => {
     );
   });
 
-  it("correctly translates fen pieces to bitboard representation", () => {
+  it("correctly translates fen piece to bitboard representation", () => {
     expect(new PositionImpl("8/8/8/4p1K1/2k1P3/8/8/8 b - - 0 1").board).toEqual(
       boardsToBitBoards({
         w: {
           // prettier-ignore
-          bishops: [
+          bishop: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -596,7 +631,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          kings: [
+          king: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -607,7 +642,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          knights: [
+          knight: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -618,7 +653,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          pawns: [
+          pawn: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -629,7 +664,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          queens: [
+          queen: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -640,7 +675,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          rooks: [
+          rook: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -651,7 +686,7 @@ describe("Position", () => {
               0, 0, 0, 0, 0, 0, 0, 0,
             ],
           // prettier-ignore
-          pieces: [
+          piece: [
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
               0, 0, 0, 0, 0, 0, 0, 0,
@@ -664,7 +699,7 @@ describe("Position", () => {
         },
         b: {
           // prettier-ignore
-          bishops: [
+          bishop: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -675,7 +710,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pieces: [
+          piece: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -686,7 +721,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          kings: [
+          king: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -697,7 +732,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          knights: [
+          knight: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -708,7 +743,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pawns: [
+          pawn: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -719,7 +754,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          queens: [
+          queen: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -730,7 +765,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          rooks: [
+          rook: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -745,14 +780,14 @@ describe("Position", () => {
     );
   });
 
-  it("correctly translates fen pieces to bitboard representation", () => {
+  it("correctly translates fen piece to bitboard representation", () => {
     expect(
       new PositionImpl("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50").board
     ).toEqual(
       boardsToBitBoards({
         w: {
           // prettier-ignore
-          bishops: [
+          bishop: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -763,7 +798,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          kings: [
+          king: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -774,7 +809,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          knights: [
+          knight: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -785,7 +820,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pawns: [
+          pawn: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -796,7 +831,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          queens: [
+          queen: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -807,7 +842,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          rooks: [
+          rook: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -818,7 +853,7 @@ describe("Position", () => {
             0, 0, 0, 0, 0, 0, 0, 0,
           ],
           // prettier-ignore
-          pieces: [
+          piece: [
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0,
@@ -831,7 +866,7 @@ describe("Position", () => {
         },
         b: {
           // prettier-ignore
-          bishops: [
+          bishop: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
@@ -842,7 +877,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          pieces: [
+          piece: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 1, 0, 0,
           0, 0, 0, 1, 0, 0, 0, 0,
@@ -853,7 +888,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          kings: [
+          king: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 1, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
@@ -864,7 +899,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          knights: [
+          knight: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
@@ -875,7 +910,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          pawns: [
+          pawn: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 1, 0, 0, 0, 0,
@@ -886,7 +921,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          queens: [
+          queen: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
@@ -897,7 +932,7 @@ describe("Position", () => {
           0, 0, 0, 0, 0, 0, 0, 0,
         ],
           // prettier-ignore
-          rooks: [
+          rook: [
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
           0, 0, 0, 0, 0, 0, 0, 0,
