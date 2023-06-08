@@ -30,7 +30,11 @@ export default class UCIEngine {
       case EngineInput.GO:
         break;
       case EngineInput.PERFT:
-        new PositionImpl().perft(1);
+        let depth = parseInt(tokens[1]);
+        if (isNaN(depth)) {
+          depth = 1;
+        }
+        new PositionImpl().perft(depth);
         break;
       default:
         // send to engine thread

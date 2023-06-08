@@ -42,7 +42,7 @@ export interface Position {
 export class PositionImpl implements Position {
   board: ClassicalBitBoards;
   state: State;
-  history: Move[];
+  history: { board: ClassicalBitBoards; state: State }[];
 
   constructor(fen?: string) {
     fen = fen || DefaultFEN;
@@ -146,8 +146,8 @@ export class PositionImpl implements Position {
   }
 
   makeMove(move: Move) {
-    // put move in board history (for undo)
-    this.history.push(move);
+    // put board in board history (for undo)
+    this.history.push({ board: this.board, state: this.state });
 
     // handle quiet move
     move.kind === MoveType.QUIET && this.makeQuietMove(move);
@@ -241,10 +241,17 @@ export class PositionImpl implements Position {
   }
 
   undoMove() {
+    console.log(this.history.length);
     // retrieve move from board history
-    const move = this.history.pop();
+    const entry = this.history.pop();
 
-    // TODO: implement
+    if (entry) {
+      // restore board
+      this.board = entry.board;
+
+      // restore state
+      this.state = entry.state;
+    }
   }
 
   generateMoves() {
@@ -256,7 +263,6 @@ export class PositionImpl implements Position {
     ) => {
       while (board) {
         const ls1b = this.getLS1B(board);
-        console.log(ls1b);
         moves = moves.concat(callback(ls1b));
         board ^= ls1b; // remove ls1b from board
       }
@@ -302,23 +308,23 @@ export class PositionImpl implements Position {
 
       console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
 
-      return moves.length;
+      return nodes;
     }
 
-    // let nodes = 0;
+    let nodes = 0;
 
-    // for (let move of moves) {
-    //   this.makeMove(move);
-    //   nodes += this.perft(depth - 1);
-    //   this.undoMove();
-    // }
+    for (let move of moves) {
+      this.makeMove(move);
+      nodes += this.perft(depth - 1);
+      this.undoMove();
+    }
 
-    // const end = performance.now();
-    // const time = end - start;
+    const end = performance.now();
+    const time = end - start;
 
-    // console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+    console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
 
-    // return nodes;
+    return nodes;
   }
 
   getLS1B(board: bigint) {
