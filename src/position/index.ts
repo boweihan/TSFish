@@ -23,6 +23,8 @@ import {
   Pieces,
   Rank2,
   Rank7,
+  Squares,
+  SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { prettyPrint } from "../util/prettyPrint";
@@ -294,6 +296,17 @@ export class PositionImpl implements Position {
 
   perft(depth: number) {
     const moves = this.generateMoves();
+
+    console.log(
+      moves
+        .map(
+          ({ from, to }) =>
+            `${this.determinePiece(from)} ${SquaresReverse[from.toString(2)]} ${
+              SquaresReverse[to.toString(2)]
+            }`
+        )
+        .join("\n")
+    );
 
     if (depth === 1) {
       return moves.length;

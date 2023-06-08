@@ -247,6 +247,13 @@ export const Squares = {
   ),
 };
 
+export const SquaresReverse = Object.keys(Squares).reduce((acc, key) => {
+  // @ts-ignore
+  const value = Squares[key];
+  acc[value.toString(2)] = key;
+  return acc;
+}, {} as { [key: string]: any });
+
 // ordinal represents binary index of a square
 export const MoveType = {
   QUIET: BigInt(0),
