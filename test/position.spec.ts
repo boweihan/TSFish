@@ -20,12 +20,9 @@ const prettyPrint = (board: bigint) => {
 };
 
 prettyPrint(
-  new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-    .generatePawnAttacks(
-      BigInt(
-        0b0000000000000000000000000000000000000000000100000000000000000000
-      ),
-      "b"
+  new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+    .generateKnightMoves(
+      BigInt(0b0000000000000000000000000000000000000000000000000000000000000010)
     )
     .map((a) => a.to)
     .reduce((a, b) => a | b)
@@ -66,288 +63,284 @@ describe("Position", () => {
     );
   });
 
-  it("generates pawn attacks", () => {
+  it("generates pawn attacks for black if they attack white pieces", () => {
     expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl(
+        "rn2kbn1/p1p1ppp1/3rq3/1p1Q1b1p/P1PP1B1P/4R3/1P2PPP1/RN2KBN1 b Qq a3 0 10"
+      )
         .generatePawnAttacks(
           BigInt(
-            0b0000000000000000000000000000000000000000000100000000000000000000
+            0b0000000000000000000000000100000000000000000000000000000000000000
           ),
           "b"
         )
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
-    ).toEqual("10100000000000");
+    ).toEqual("10100000000000000000000000000000");
   });
 
-  it("generates pawn attacks", () => {
+  it("generates pawn attacks for white if they attack black pieces", () => {
     expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl(
+        "rn2kbn1/p1p1ppp1/2r1q3/1p1Q1b1p/2PP1B1P/4R3/PP2PPP1/RN2KBN1 b Qq c3 0 9"
+      )
         .generatePawnAttacks(
-          BigInt(
-            0b0000000000000000000000000000000000000000000100000000000000000000
-          ),
-          "w"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("101000000000000000000000000000");
-  });
-
-  it("generates pawn attacks", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnAttacks(
-          BigInt(
-            0b0000000000000000000000000000000000000000100000000000000000000000
-          ),
-          "b"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("100000000000000");
-  });
-
-  it("generates pawn attacks", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnAttacks(
-          BigInt(
-            0b0000000000000000000000000000000000000000100000000000000000000000
-          ),
-          "w"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("1000000000000000000000000000000");
-  });
-
-  it("generates queen moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateQueenMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000000100000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual(
-      "1000010010001000100100001010000011000000011111111100000010100000"
-    );
-  });
-
-  it("generates queen moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateQueenMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000100000000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual(
-      "100010000100100000101010000111011111011000011100001010100100100"
-    );
-  });
-
-  it("generates rook moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateRookMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000000100000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual(
-      "1000000010000000100000001000000010000000011111111000000010000000"
-    );
-  });
-
-  it("generates rook moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateRookMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000100000000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("10000000100000001000000010011111011000001000000010000000100");
-  });
-
-  it("generates bishop moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateBishopMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000100000000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual(
-      "100000000100000000100010000101000000000000010100001000100100000"
-    );
-  });
-
-  it("generates bishop moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateBishopMoves(
           BigInt(
             0b0000000000000000000000000000000000100000000000000000000000000000
+          ),
+          "w"
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("100000000000000000000000000000000000000");
+  });
+
+  it("generates queen moves", () => {
+    expect(
+      new PositionImpl(
+        "rn2kbn1/ppp1ppp1/2r1q3/3Q1b1p/3P1B1P/4R3/PPP1PPP1/RN2KBN1 b Qq - 0 8"
+      )
+        .generateQueenMoves(
+          BigInt(
+            0b0000000000000000000000000001000000000000000000000000000000000000
           )
         )
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
-    ).toEqual("1000000100100010000101000000000000010100001000100000000100");
+    ).toEqual("1000000010000001110001110110000101000010001000000000000000000");
   });
 
-  it("generates bishop moves", () => {
+  it("generates black rook moves and attacks on white pieces", () => {
     expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl(
+        "rn1qkbn1/ppp1ppp1/2r5/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 w Qq - 4 6"
+      )
+        .generateRookMoves(
+          BigInt(
+            0b0000000000000000001000000000000000000000000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("110111110010000000100000001000000010000000000000");
+  });
+
+  it("generates white rook moves and attacks on black pieces", () => {
+    expect(
+      new PositionImpl(
+        "rn1qkbn1/ppp1ppp1/7r/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 b Qq - 3 5"
+      )
+        .generateRookMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000000010000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("1000000010000000100000001000111101110000000000000000");
+  });
+
+  it("generates black bishop attacks on white pieces", () => {
+    expect(
+      new PositionImpl(
+        "rn1qkbnr/ppp1pppp/8/3p1b2/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq - 2 3"
+      )
         .generateBishopMoves(
           BigInt(
-            0b1000000000000000000000000000000000000000000000000000000000000000
+            0b0000000000000000000000000000010000000000000000000000000000000000
           )
         )
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
-    ).toEqual("1000000001000000001000000001000000001000000001000000001");
+    ).toEqual("10000000010000000010100000000000001010000100010010000000000000");
   });
 
-  it("generates bishop moves", () => {
+  it("generate white bishop attacks on black pieces", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2"
+      )
+        .generateBishopMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000100000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("100000000100010000101000000000000010100001000000100000");
+  });
+
+  it("generates no bishop moves if contained by own pieces", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).generateBishopMoves(
+        BigInt(
+          0b1000000000000000000000000000000000000000000000000000000000000000
+        )
+      )
+    ).toEqual([]);
+  });
+
+  it("generates bishop moves that stop at a collision", () => {
     expect(
       new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
         .generateBishopMoves(
           BigInt(
             0b0000000010000000000000000000000000000000000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10000000010000000010000000010000000010000000000");
+  });
+
+  it("doesn't generate black pawn moves that result in collisions", () => {
+    expect(
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      ).generatePawnMoves(
+        BigInt(
+          0b0000000000000000000000000000000000000000000000010000000000000000
+        ),
+        "b"
+      )
+    ).toEqual([]);
+  });
+
+  it("doesn't generate white pawn moves that result in collisions", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000000000000001000000000000000000000000000000000000000
+          ),
+          "b"
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10000000000000000000000000000000");
+  });
+
+  it("generates single and double push black pawn moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000001000000000000000000000000000000000000000000000000
+          ),
+          "b"
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10000000100000000000000000000000000000000");
+  });
+
+  it("generates single and double push white pawn moves", () => {
+    expect(
+      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+        .generatePawnMoves(
+          BigInt(
+            0b0000000000000000000000000000000000000000000000001000000000000000
+          ),
+          "w"
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10000000100000000000000000000000");
+  });
+
+  it("generates king moves that don't collide with own pieces", () => {
+    expect(
+      new PositionImpl(
+        "rnk2bn1/p1p1ppp1/3rq3/1p1Q1b1p/PKPP1B1P/4R3/1P2PPP1/RN3BN1 w - - 11 16"
+      )
+        .generateKingMoves(
+          BigInt(
+            0b0000000000000000000000000000000001000000000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("1110000000000000111000000000000000000000");
+  });
+
+  it.skip("generates king moves that don't put the king in check", () => {
+    expect(
+      new PositionImpl(
+        "rn1k1bn1/p1p1ppp1/3rq3/1pKQ1b1p/P1PP1B1P/4R3/1P2PPP1/RN3BN1 w - - 13 17"
+      )
+        .generateKingMoves(
+          BigInt(
+            0b0000000000000000000000000010000000000000000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("01000000100000001000000000000000000000000000000");
+  });
+
+  it("generates knight moves", () => {
+    expect(
+      new PositionImpl(
+        "r2k1bn1/p1p1ppp1/3rq3/1pKQNb1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 0 19"
+      )
+        .generateKnightMoves(
+          BigInt(
+            0b0000000000000000000000000000100000000000000000000000000000000000
+          )
+        )
+        .map((a) => a.to)
+        .reduce((a, b) => a | b)
+        .toString(2)
+    ).toEqual("10100001000100000000000000010000101000000000000000000");
+  });
+
+  it("generates knight moves", () => {
+    expect(
+      new PositionImpl(
+        "r3kbn1/p1p1ppp1/2Nrq3/1pKQ1b1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 2 20"
+      )
+        .generateKnightMoves(
+          BigInt(
+            0b0000000000000000001000000000000000000000000000000000000000000000
           )
         )
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
     ).toEqual(
-      "100000000000000010000000010000000010000000010000000010000000010"
+      "101000010001000000000001000100001010000000000000000000000000000"
     );
   });
 
-  it("generates double pushes for black", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnMoves(
-          BigInt(
-            0b0000000010000000000000000000000000000000000000000000000000000000
-          ),
-          "b"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("100000001000000000000000000000000000000000000000");
-  });
-
-  it("generates double pushes for white", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnMoves(
-          BigInt(
-            0b0000000000000000000000000000000000000000000000000000000100000000
-          ),
-          "w"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("1000000010000000000000000");
-  });
-
-  it("generates pawn moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnMoves(
-          BigInt(
-            0b0000000000000000000100000000000000000000000000000000000000000000
-          ),
-          "b"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("1000000000000000000000000000000000000");
-  });
-
-  it("generates pawn moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generatePawnMoves(
-          BigInt(
-            0b0000000000000000000100000000000000000000000000000000000000000000
-          ),
-          "w"
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("10000000000000000000000000000000000000000000000000000");
-  });
-
-  it("generates king moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateKingMoves(
-          BigInt(
-            0b0000000000000000000100000000000000000000000000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("111000001010000011100000000000000000000000000000000000");
-  });
-
   it("generates knight moves", () => {
     expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
+      new PositionImpl(
+        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+      )
         .generateKnightMoves(
           BigInt(
-            0b0000000000000000000000000000000000000000000000000000000000100000
+            0b0000000000000000000000000000000000000000000000000000000000000010
           )
         )
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
-    ).toEqual("10100001000100000000000");
-  });
-
-  it("generates knight moves", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .generateKnightMoves(
-          BigInt(
-            0b0000000000000000000100000000000000000000000000000000000000000000
-          )
-        )
-        .map((a) => a.to)
-        .reduce((a, b) => a | b)
-        .toString(2)
-    ).toEqual("10100001000100000000000100010000101000000000000000000000000000");
+    ).toEqual("1010000000000000000");
   });
 
   it("gets least significant bit", () => {

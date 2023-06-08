@@ -267,4 +267,4 @@ export const MoveType = {
 
 export const Max64BitInt = BigInt("18446744073709551615");
 export const Rank2 = BigInt("65280");
-export const Rank7 = BigInt("143552238122434560");
+export const Rank7 = BigInt("71776119061217280");

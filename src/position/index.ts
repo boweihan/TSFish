@@ -332,6 +332,18 @@ export class PositionImpl implements Position {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
+  isCapture(from: bigint, to: bigint) {
+    if (this.board.w.piece & from) {
+      return this.board.b.piece & to && this.isCollision(to);
+    }
+
+    if (this.board.b.piece & from) {
+      return this.board.w.piece & to && this.isCollision(to);
+    }
+
+    return false;
+  }
+
   generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
     const moves = [];
 
@@ -410,7 +422,12 @@ export class PositionImpl implements Position {
       case "w":
         const rightAttackW = from << BigInt(7);
 
-        if (rightAttackW & Max64BitInt & Masks.NOT_H_FILE)
+        if (
+          rightAttackW &
+            Max64BitInt & // 64 bits
+            Masks.NOT_H_FILE && // no wrapping
+          this.isCapture(from, rightAttackW)
+        )
           attacks.push({
             from,
             to: rightAttackW,
@@ -419,7 +436,10 @@ export class PositionImpl implements Position {
 
         const leftAttackW = from << BigInt(9);
 
-        if (leftAttackW & Max64BitInt & Masks.NOT_A_FILE)
+        if (
+          leftAttackW & Max64BitInt & Masks.NOT_A_FILE &&
+          this.isCapture(from, leftAttackW)
+        )
           attacks.push({
             from,
             to: leftAttackW,
@@ -429,7 +449,10 @@ export class PositionImpl implements Position {
       case "b":
         const rightAttackB = from >> BigInt(7);
 
-        if (rightAttackB & Masks.NOT_A_FILE)
+        if (
+          rightAttackB & Masks.NOT_A_FILE &&
+          this.isCapture(from, rightAttackB)
+        )
           attacks.push({
             from,
             to: rightAttackB,
@@ -438,7 +461,10 @@ export class PositionImpl implements Position {
 
         const leftAttackB = from >> BigInt(9);
 
-        if (leftAttackB & Masks.NOT_H_FILE) {
+        if (
+          leftAttackB & Masks.NOT_H_FILE &&
+          this.isCapture(from, leftAttackB)
+        ) {
           attacks.push({
             from,
             to: leftAttackB,
@@ -465,10 +491,11 @@ export class PositionImpl implements Position {
       (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
     ]
       .filter(Boolean)
+      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
       .map((to) => ({
         from,
         to,
-        kind: this.isCollision(to) ? MoveType.CAPTURE : MoveType.QUIET,
+        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
       })); // TODO: add captures
   };
 
@@ -485,6 +512,8 @@ export class PositionImpl implements Position {
 
       if (noEaRay) {
         const collided = this.isCollision(noEaRay);
+
+        if (collided && !this.isCapture(from, noEaRay)) break; // hit own piece
 
         moves.push({
           from,
@@ -506,6 +535,8 @@ export class PositionImpl implements Position {
       if (noWeRay) {
         const collided = this.isCollision(noWeRay);
 
+        if (collided && !this.isCapture(from, noWeRay)) break; // hit own piece
+
         moves.push({
           from,
           to: noWeRay,
@@ -525,6 +556,8 @@ export class PositionImpl implements Position {
       if (soEaRay) {
         const collided = this.isCollision(soEaRay);
 
+        if (collided && !this.isCapture(from, soEaRay)) break; // hit own piece
+
         moves.push({
           from,
           to: soEaRay,
@@ -543,6 +576,8 @@ export class PositionImpl implements Position {
 
       if (soWeRay) {
         const collided = this.isCollision(soWeRay);
+
+        if (collided && !this.isCapture(from, soWeRay)) break; // hit own piece
 
         moves.push({
           from,
@@ -570,6 +605,8 @@ export class PositionImpl implements Position {
       if (noRay) {
         const collided = this.isCollision(noRay);
 
+        if (collided && !this.isCapture(from, noRay)) break; // hit own piece
+
         moves.push({
           from,
           to: noRay,
@@ -589,6 +626,8 @@ export class PositionImpl implements Position {
       if (eaRay) {
         const collided = this.isCollision(eaRay);
 
+        if (collided && !this.isCapture(from, eaRay)) break; // hit own piece
+
         moves.push({
           from,
           to: eaRay,
@@ -606,6 +645,8 @@ export class PositionImpl implements Position {
 
       if (soRay) {
         const collided = this.isCollision(soRay);
+
+        if (collided && !this.isCapture(from, soRay)) break; // hit own piece
 
         moves.push({
           from,
@@ -625,6 +666,8 @@ export class PositionImpl implements Position {
 
       if (weRay) {
         const collided = this.isCollision(weRay);
+
+        if (collided && !this.isCapture(from, weRay)) break; // hit own piece
 
         moves.push({
           from,
@@ -659,11 +702,12 @@ export class PositionImpl implements Position {
       (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ]
       .filter(Boolean)
+      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
       .map((to) => ({
         from,
         to,
-        kind: this.isCollision(to) ? MoveType.CAPTURE : MoveType.QUIET,
-      })); // TODO: add captures
+        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
+      }));
   };
 
   set(board: bigint, square: bigint): bigint {
