@@ -694,7 +694,7 @@ export class PositionImpl implements Position {
 
   generateKingMoves = (from: bigint): Move[] => {
     return [
-      from << BigInt(8), // no
+      (from << BigInt(8)) & Max64BitInt, // no
       (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
       (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
       (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
