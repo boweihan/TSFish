@@ -167,6 +167,7 @@ export class PositionImpl implements Position {
 
     let piece;
 
+    // TODO: simplify
     if (w.pawn & from || b.pawn & from) {
       piece = Pieces.PAWN;
     } else if (w.knight & from || b.knight & from) {
@@ -261,12 +262,10 @@ export class PositionImpl implements Position {
       }
     };
 
-    const partialRight = (fn: Function, ...presetArgs: any[]) => {
-      return function partiallyApplied(...laterArgs: any[]) {
+    const partialRight = (fn: Function, ...presetArgs: any[]) =>
+      function partiallyApplied(...laterArgs: any[]) {
         return fn(...laterArgs, ...presetArgs);
       };
-    };
-
     // white
     generateMovesForPiece(
       this.board.w.pawn,
@@ -327,6 +326,10 @@ export class PositionImpl implements Position {
     // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
     // javascript represents negative numbers as the twos complement
     return board & -board;
+  }
+
+  isCapture(to: bigint) {
+    return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
   generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
@@ -427,7 +430,11 @@ export class PositionImpl implements Position {
       (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
     ]
       .filter(Boolean)
-      .map((to) => ({ from, to, kind: MoveType.QUIET })); // TODO: add captures
+      .map((to) => ({
+        from,
+        to,
+        kind: this.isCapture(to) ? MoveType.CAPTURE : MoveType.QUIET,
+      })); // TODO: add captures
   };
 
   generateBishopMoves = (from: bigint): Move[] => {
@@ -445,7 +452,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: noEaRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(noEaRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -461,7 +468,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: noWeRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(noWeRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -476,7 +483,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: soEaRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(soEaRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -491,7 +498,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: soWeRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(soWeRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -513,7 +520,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: noRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(noRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -528,7 +535,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: eaRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(eaRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -542,7 +549,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: soRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(soRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -557,7 +564,7 @@ export class PositionImpl implements Position {
         moves.push({
           from,
           to: weRay,
-          kind: MoveType.QUIET,
+          kind: this.isCapture(weRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
       }
     }
@@ -585,7 +592,11 @@ export class PositionImpl implements Position {
       (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ]
       .filter(Boolean)
-      .map((to) => ({ from, to, kind: MoveType.QUIET })); // TODO: add captures
+      .map((to) => ({
+        from,
+        to,
+        kind: this.isCapture(to) ? MoveType.CAPTURE : MoveType.QUIET,
+      })); // TODO: add captures
   };
 
   set(board: bigint, square: bigint): bigint {

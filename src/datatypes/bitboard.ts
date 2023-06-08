@@ -26,6 +26,7 @@ export type ColoredBitBoards = {
 export type ClassicalBitBoards = {
   [K in PlayerColor]: ColoredBitBoards;
 };
+
 export type ColoredBoards = {
   piece: Board;
   king: Board;
