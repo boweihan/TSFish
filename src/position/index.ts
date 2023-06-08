@@ -328,7 +328,7 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  isCapture(to: bigint) {
+  isCollision(to: bigint) {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
@@ -338,17 +338,31 @@ export class PositionImpl implements Position {
     switch (color) {
       case "w":
         // single push
-        if ((from << BigInt(8)) & Max64BitInt)
+        const singlePushW = from << BigInt(8);
+
+        if (
+          singlePushW & Max64BitInt && // 64 bits
+          !this.isCollision(singlePushW)
+        ) {
           moves.push({
             from,
-            to: from << BigInt(8),
+            to: singlePushW,
             kind: MoveType.QUIET,
           }); // ensure pawn pushes don't go off the board for white
+        }
+
         // double push
-        if (from & Rank2 & Max64BitInt) {
+        const doublePushW = from << BigInt(16);
+
+        if (
+          from & Rank2 && // rank2
+          doublePushW & Max64BitInt && // 64 bits
+          !this.isCollision(singlePushW) &&
+          !this.isCollision(doublePushW)
+        ) {
           moves.push({
             from,
-            to: from << BigInt(16),
+            to: doublePushW,
             kind: MoveType.DOUBLE_PAWN_PUSH,
           });
         }
@@ -356,16 +370,27 @@ export class PositionImpl implements Position {
         break;
       case "b":
         // single push
-        moves.push({
-          from,
-          to: from >> BigInt(8),
-          kind: MoveType.QUIET,
-        });
-        // double push
-        if (from & Rank7) {
+        const singlePushB = from >> BigInt(8);
+
+        if (!this.isCollision(singlePushB)) {
           moves.push({
             from,
-            to: from >> BigInt(16),
+            to: singlePushB,
+            kind: MoveType.QUIET,
+          });
+        }
+
+        // double push
+        const doublePushB = from >> BigInt(16);
+
+        if (
+          from & Rank7 && // rank 7
+          !this.isCollision(singlePushB) &&
+          !this.isCollision(doublePushB)
+        ) {
+          moves.push({
+            from,
+            to: doublePushB,
             kind: MoveType.DOUBLE_PAWN_PUSH,
           });
         }
@@ -383,30 +408,40 @@ export class PositionImpl implements Position {
 
     switch (color) {
       case "w":
-        if ((from << BigInt(7)) & Max64BitInt & Masks.NOT_H_FILE)
+        const rightAttackW = from << BigInt(7);
+
+        if (rightAttackW & Max64BitInt & Masks.NOT_H_FILE)
           attacks.push({
             from,
-            to: from << BigInt(7),
+            to: rightAttackW,
             kind: MoveType.CAPTURE,
           });
-        if ((from << BigInt(9)) & Max64BitInt & Masks.NOT_A_FILE)
+
+        const leftAttackW = from << BigInt(9);
+
+        if (leftAttackW & Max64BitInt & Masks.NOT_A_FILE)
           attacks.push({
             from,
-            to: from << BigInt(9),
+            to: leftAttackW,
             kind: MoveType.CAPTURE,
           });
         break;
       case "b":
-        if ((from >> BigInt(7)) & Masks.NOT_A_FILE)
+        const rightAttackB = from >> BigInt(7);
+
+        if (rightAttackB & Masks.NOT_A_FILE)
           attacks.push({
             from,
-            to: from >> BigInt(7),
+            to: rightAttackB,
             kind: MoveType.CAPTURE,
           });
-        if ((from >> BigInt(9)) & Masks.NOT_H_FILE) {
+
+        const leftAttackB = from >> BigInt(9);
+
+        if (leftAttackB & Masks.NOT_H_FILE) {
           attacks.push({
             from,
-            to: from >> BigInt(9),
+            to: leftAttackB,
             kind: MoveType.CAPTURE,
           });
         }
@@ -433,7 +468,7 @@ export class PositionImpl implements Position {
       .map((to) => ({
         from,
         to,
-        kind: this.isCapture(to) ? MoveType.CAPTURE : MoveType.QUIET,
+        kind: this.isCollision(to) ? MoveType.CAPTURE : MoveType.QUIET,
       })); // TODO: add captures
   };
 
@@ -449,11 +484,15 @@ export class PositionImpl implements Position {
       noEaRay &= Masks.NOT_H_FILE;
 
       if (noEaRay) {
+        const collided = this.isCollision(noEaRay);
+
         moves.push({
           from,
           to: noEaRay,
-          kind: this.isCapture(noEaRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -465,11 +504,15 @@ export class PositionImpl implements Position {
       noWeRay &= Masks.NOT_A_FILE;
 
       if (noWeRay) {
+        const collided = this.isCollision(noWeRay);
+
         moves.push({
           from,
           to: noWeRay,
-          kind: this.isCapture(noWeRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -480,11 +523,15 @@ export class PositionImpl implements Position {
       soEaRay &= Masks.NOT_H_FILE;
 
       if (soEaRay) {
+        const collided = this.isCollision(soEaRay);
+
         moves.push({
           from,
           to: soEaRay,
-          kind: this.isCapture(soEaRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -495,11 +542,15 @@ export class PositionImpl implements Position {
       soWeRay &= Masks.NOT_A_FILE;
 
       if (soWeRay) {
+        const collided = this.isCollision(soWeRay);
+
         moves.push({
           from,
           to: soWeRay,
-          kind: this.isCapture(soWeRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -517,11 +568,15 @@ export class PositionImpl implements Position {
       noRay &= Max64BitInt;
 
       if (noRay) {
+        const collided = this.isCollision(noRay);
+
         moves.push({
           from,
           to: noRay,
-          kind: this.isCapture(noRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -532,11 +587,15 @@ export class PositionImpl implements Position {
       eaRay &= Masks.NOT_H_FILE;
 
       if (eaRay) {
+        const collided = this.isCollision(eaRay);
+
         moves.push({
           from,
           to: eaRay,
-          kind: this.isCapture(eaRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: this.isCollision(eaRay) ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -546,11 +605,15 @@ export class PositionImpl implements Position {
       soRay >>= BigInt(8);
 
       if (soRay) {
+        const collided = this.isCollision(soRay);
+
         moves.push({
           from,
           to: soRay,
-          kind: this.isCapture(soRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -561,11 +624,15 @@ export class PositionImpl implements Position {
       weRay &= Masks.NOT_A_FILE;
 
       if (weRay) {
+        const collided = this.isCollision(weRay);
+
         moves.push({
           from,
           to: weRay,
-          kind: this.isCapture(weRay) ? MoveType.CAPTURE : MoveType.QUIET,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
+
+        if (collided) break;
       }
     }
 
@@ -595,7 +662,7 @@ export class PositionImpl implements Position {
       .map((to) => ({
         from,
         to,
-        kind: this.isCapture(to) ? MoveType.CAPTURE : MoveType.QUIET,
+        kind: this.isCollision(to) ? MoveType.CAPTURE : MoveType.QUIET,
       })); // TODO: add captures
   };
 
