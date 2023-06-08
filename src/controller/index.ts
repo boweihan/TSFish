@@ -2,7 +2,7 @@ import readline from "readline";
 import path from "path";
 import { Worker } from "worker_threads";
 import { EngineInput, EngineOutput } from "../constants";
-import runWorker from "../util/runWorker";
+import runWorker from "../worker/runWorker";
 
 export default class UCIController {
   private rl: readline.Interface;

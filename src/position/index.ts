@@ -25,6 +25,8 @@ import {
   Rank7,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
+import { prettyPrint } from "../util/prettyPrint";
+import { cloneDeep } from "../util/deepCopy";
 
 type State = {
   activeColor: PlayerColor;
@@ -147,7 +149,7 @@ export class PositionImpl implements Position {
 
   makeMove(move: Move) {
     // put board in board history (for undo)
-    this.history.push({ board: this.board, state: this.state });
+    this.history.push(cloneDeep({ board: this.board, state: this.state }));
 
     // handle quiet move
     move.kind === MoveType.QUIET && this.makeQuietMove(move);
@@ -167,21 +169,15 @@ export class PositionImpl implements Position {
 
     let piece;
 
-    // TODO: simplify
-    if (w.pawn & from || b.pawn & from) {
-      piece = Pieces.PAWN;
-    } else if (w.knight & from || b.knight & from) {
-      piece = Pieces.KNIGHT;
-    } else if (w.bishop & from || b.bishop & from) {
-      piece = Pieces.BISHOP;
-    } else if (w.rook & from || b.rook & from) {
-      piece = Pieces.ROOK;
-    } else if (w.queen & from || b.queen & from) {
-      piece = Pieces.QUEEN;
-    } else if (w.king & from || b.king & from) {
-      piece = Pieces.KING;
-    } else {
-      throw new Error("Invalid piece");
+    (w.pawn & from || b.pawn & from) && (piece = Pieces.PAWN);
+    (w.rook & from || b.rook & from) && (piece = Pieces.ROOK);
+    (w.knight & from || b.knight & from) && (piece = Pieces.KNIGHT);
+    (w.bishop & from || b.bishop & from) && (piece = Pieces.BISHOP);
+    (w.queen & from || b.queen & from) && (piece = Pieces.QUEEN);
+    (w.king & from || b.king & from) && (piece = Pieces.KING);
+
+    if (!piece) {
+      throw new Error(`Invalid piece at ${from}`);
     }
 
     return piece;
@@ -193,13 +189,13 @@ export class PositionImpl implements Position {
     // check which color is moving
     const color = this.board.w.piece & from ? "w" : "b";
 
+    const fromPiece = this.determinePiece(from);
+
     // update pieces bitboard
     this.board[color].piece = this.remove(this.board[color].piece, from);
     this.board[color].piece = this.set(this.board[color].piece, to);
 
     // update piece bitboard
-    const fromPiece = this.determinePiece(from);
-
     this.board[color][fromPiece] = this.remove(
       this.board[color][fromPiece],
       from
@@ -214,13 +210,13 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const oppositeColor = color === "w" ? "b" : "w";
 
+    const fromPiece = this.determinePiece(from);
+
     // update pieces bitboard
     this.board[color].piece = this.remove(this.board[color].piece, from);
     this.board[color].piece = this.set(this.board[color].piece, to);
 
     // update piece bitboard
-    const fromPiece = this.determinePiece(from);
-
     this.board[color][fromPiece] = this.remove(
       this.board[color][fromPiece],
       from
@@ -241,7 +237,6 @@ export class PositionImpl implements Position {
   }
 
   undoMove() {
-    console.log(this.history.length);
     // retrieve move from board history
     const entry = this.history.pop();
 
@@ -298,17 +293,10 @@ export class PositionImpl implements Position {
   }
 
   perft(depth: number) {
-    const start = performance.now();
     const moves = this.generateMoves();
 
     if (depth === 1) {
-      const end = performance.now();
-      const time = end - start;
-      const nodes = moves.length;
-
-      console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
-
-      return nodes;
+      return moves.length;
     }
 
     let nodes = 0;
@@ -318,11 +306,6 @@ export class PositionImpl implements Position {
       nodes += this.perft(depth - 1);
       this.undoMove();
     }
-
-    const end = performance.now();
-    const time = end - start;
-
-    console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
 
     return nodes;
   }
@@ -502,7 +485,7 @@ export class PositionImpl implements Position {
         from,
         to,
         kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
-      })); // TODO: add captures
+      }));
   };
 
   generateBishopMoves = (from: bigint): Move[] => {

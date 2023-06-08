@@ -31,10 +31,19 @@ export default class UCIEngine {
         break;
       case EngineInput.PERFT:
         let depth = parseInt(tokens[1]);
+
         if (isNaN(depth)) {
           depth = 1;
         }
-        new PositionImpl().perft(depth);
+
+        const start = performance.now();
+
+        const nodes = new PositionImpl().perft(depth);
+
+        const end = performance.now();
+        const time = end - start;
+
+        console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
         break;
       default:
         // send to engine thread
