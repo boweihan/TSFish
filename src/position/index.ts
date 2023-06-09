@@ -23,11 +23,9 @@ import {
   Pieces,
   Rank2,
   Rank7,
-  Squares,
   SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
-import { prettyPrint } from "../util/prettyPrint";
 import { cloneDeep } from "../util/deepCopy";
 
 type State = {
@@ -156,14 +154,20 @@ export class PositionImpl implements Position {
     // handle quiet move
     move.kind === MoveType.QUIET && this.makeQuietMove(move);
 
+    // handle double pawn push
+    move.kind === MoveType.DOUBLE_PAWN_PUSH && this.makeDoublePawnPush(move);
+
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
     // handle castle
     // handle en passant
     // handle promotion
+
     // update board state
-    // validate that king isn't in check due to pseudo-legal move generation
+    this.updateActiveColor();
+
+    this.updateFullMoveNumber();
   }
 
   private determinePiece(from: BitBoard): Piece {
@@ -238,6 +242,12 @@ export class PositionImpl implements Position {
     );
   }
 
+  makeDoublePawnPush(move: Move) {
+    this.makeQuietMove(move);
+
+    // update enpassant target
+  }
+
   undoMove() {
     // retrieve move from board history
     const entry = this.history.pop();
@@ -269,44 +279,30 @@ export class PositionImpl implements Position {
       function partiallyApplied(...laterArgs: any[]) {
         return fn(...laterArgs, ...presetArgs);
       };
-    // white
-    generateMovesForPiece(
-      this.board.w.pawn,
-      partialRight(this.generatePawnMoves, "w")
-    );
-    generateMovesForPiece(this.board.w.knight, this.generateKnightMoves);
-    generateMovesForPiece(this.board.w.bishop, this.generateBishopMoves);
-    generateMovesForPiece(this.board.w.rook, this.generateRookMoves);
-    generateMovesForPiece(this.board.w.queen, this.generateQueenMoves);
-    generateMovesForPiece(this.board.w.king, this.generateKingMoves);
 
-    // black
+    const color = this.state.activeColor;
+
     generateMovesForPiece(
-      this.board.b.pawn,
-      partialRight(this.generatePawnMoves, "b")
+      this.board[color].pawn,
+      partialRight(this.generatePawnMoves, color)
     );
-    generateMovesForPiece(this.board.b.knight, this.generateKnightMoves);
-    generateMovesForPiece(this.board.b.bishop, this.generateBishopMoves);
-    generateMovesForPiece(this.board.b.rook, this.generateRookMoves);
-    generateMovesForPiece(this.board.b.queen, this.generateQueenMoves);
-    generateMovesForPiece(this.board.b.king, this.generateKingMoves);
+    generateMovesForPiece(
+      this.board[color].pawn,
+      partialRight(this.generatePawnAttacks, color)
+    );
+    generateMovesForPiece(this.board[color].knight, this.generateKnightMoves);
+    generateMovesForPiece(this.board[color].bishop, this.generateBishopMoves);
+    generateMovesForPiece(this.board[color].rook, this.generateRookMoves);
+    generateMovesForPiece(this.board[color].queen, this.generateQueenMoves);
+    generateMovesForPiece(this.board[color].king, this.generateKingMoves);
 
     return moves;
   }
 
   perft(depth: number) {
-    const moves = this.generateMoves();
+    if (!depth) return 1;
 
-    console.log(
-      moves
-        .map(
-          ({ from, to }) =>
-            `${this.determinePiece(from)} ${SquaresReverse[from.toString(2)]} ${
-              SquaresReverse[to.toString(2)]
-            }`
-        )
-        .join("\n")
-    );
+    const moves = this.generateMoves();
 
     if (depth === 1) {
       return moves.length;
@@ -725,14 +721,21 @@ export class PositionImpl implements Position {
   }
 
   updateActiveColor() {
-    // TODO: implement
+    this.state.activeColor =
+      this.state.activeColor === Color.WHITE ? Color.BLACK : Color.WHITE;
+  }
+
+  updateHalfMoveClock() {
+    this.state.halfMoveClock++;
+  }
+
+  updateFullMoveNumber() {
+    if (this.state.activeColor === Color.WHITE) {
+      this.state.fullMoveNumber++;
+    }
   }
 
   updateEnPassantSquare() {
-    // TODO: implement
-  }
-
-  updateSideToMove() {
     // TODO: implement
   }
 

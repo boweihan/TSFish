@@ -48,6 +48,24 @@ describe("Position", () => {
     );
   });
 
+  it("makes a double pawn push", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
+    position.makeMove({
+      from: Squares.a2,
+      to: Squares.a4,
+      kind: MoveType.DOUBLE_PAWN_PUSH,
+    });
+    expect(position.board.w.piece.toString(2)).toEqual(
+      "10000000000000000111111111111111"
+    );
+    expect(position.board.w.pawn.toString(2)).toEqual(
+      "10000000000000000111111100000000"
+    );
+    // TODO: update enpassant square test
+  });
+
   it("generates pawn attacks for black if they attack white pieces", () => {
     expect(
       new PositionImpl(
