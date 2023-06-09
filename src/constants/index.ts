@@ -245,14 +245,14 @@ export const Squares = {
   a8: BigInt(
     0b1000000000000000000000000000000000000000000000000000000000000000
   ),
-};
+} as { [key: string]: bigint };
 
 export const SquaresReverse = Object.keys(Squares).reduce((acc, key) => {
   // @ts-ignore
   const value = Squares[key];
   acc[value.toString(2)] = key;
   return acc;
-}, {} as { [key: string]: any });
+}, {} as { [key: string]: string });
 
 // ordinal represents binary index of a square
 export const MoveType = {

@@ -23,10 +23,12 @@ import {
   Pieces,
   Rank2,
   Rank7,
+  Squares,
   SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
+import { prettyPrint } from "../util/prettyPrint";
 
 type State = {
   activeColor: PlayerColor;
@@ -151,18 +153,22 @@ export class PositionImpl implements Position {
     // put board in board history (for undo)
     this.history.push(cloneDeep({ board: this.board, state: this.state }));
 
+    // clear enpassant target
+    this.state.enPassantTarget = "-";
+
     // handle quiet move
     move.kind === MoveType.QUIET && this.makeQuietMove(move);
 
-    // handle double pawn push
+    // handle enpassant capture
+    move.kind === MoveType.EN_PASSANT && this.makeEnPassantCapture(move);
+
+    // handle double pawn push and update enpassant square
     move.kind === MoveType.DOUBLE_PAWN_PUSH && this.makeDoublePawnPush(move);
 
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
     // handle castle
-
-    // handle en passant
 
     // handle promotion
 
@@ -185,30 +191,38 @@ export class PositionImpl implements Position {
     (w.king & from || b.king & from) && (piece = Pieces.KING);
 
     if (!piece) {
-      throw new Error(`Invalid piece at ${from}`);
+      throw new Error(`Invalid piece at ${SquaresReverse[from.toString(2)]}`);
     }
 
     return piece;
   }
 
-  private makeQuietMove(move: Move) {
-    const { from, to } = move;
+  private updateBitboards(color: PlayerColor, from: BitBoard, to?: BitBoard) {
+    const piece = this.determinePiece(from);
 
-    // check which color is moving
-    const color = this.board.w.piece & from ? "w" : "b";
+    // update piece bitboard
+    this.board[color][piece] = this.remove(this.board[color][piece], from);
 
-    const fromPiece = this.determinePiece(from);
+    if (to) {
+      // if to is null, it's a capture
+      this.board[color][piece] = this.set(this.board[color][piece], to);
+    }
 
     // update pieces bitboard
     this.board[color].piece = this.remove(this.board[color].piece, from);
-    this.board[color].piece = this.set(this.board[color].piece, to);
 
-    // update piece bitboard
-    this.board[color][fromPiece] = this.remove(
-      this.board[color][fromPiece],
-      from
-    );
-    this.board[color][fromPiece] = this.set(this.board[color][fromPiece], to);
+    if (to) {
+      // if to is null, it's a capture
+      this.board[color].piece = this.set(this.board[color].piece, to);
+    }
+  }
+
+  private makeQuietMove(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+
+    this.updateBitboards(color, from, to);
   }
 
   private makeCaptureMove(move: Move) {
@@ -218,36 +232,38 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const oppositeColor = color === "w" ? "b" : "w";
 
-    const fromPiece = this.determinePiece(from);
-
-    // update pieces bitboard
-    this.board[color].piece = this.remove(this.board[color].piece, from);
-    this.board[color].piece = this.set(this.board[color].piece, to);
-
-    // update piece bitboard
-    this.board[color][fromPiece] = this.remove(
-      this.board[color][fromPiece],
-      from
-    );
-    this.board[color][fromPiece] = this.set(this.board[color][fromPiece], to);
+    // update moving piece bitboard
+    this.updateBitboards(color, from, to);
 
     // update opponent's piece bitboard
-    const toPiece = this.determinePiece(to);
-
-    this.board[oppositeColor].piece = this.remove(
-      this.board[oppositeColor].piece,
-      to
-    );
-    this.board[oppositeColor][toPiece] = this.remove(
-      this.board[oppositeColor][toPiece],
-      to
-    );
+    this.updateBitboards(oppositeColor, to);
   }
 
-  makeDoublePawnPush(move: Move) {
-    this.makeQuietMove(move);
+  private makeDoublePawnPush(move: Move) {
+    const { from } = move;
 
-    // update enpassant target
+    const color = this.board.w.piece & from ? "w" : "b";
+    const square = color === "w" ? from << BigInt(8) : from >> BigInt(8);
+
+    this.state.enPassantTarget = SquaresReverse[square.toString(2)];
+
+    this.makeQuietMove(move);
+  }
+
+  private makeEnPassantCapture(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+    const oppositeColor = color === "w" ? "b" : "w";
+
+    // update moving piece bitboard
+    this.updateBitboards(color, from, to);
+
+    // update opponent's piece bitboard
+    this.updateBitboards(
+      oppositeColor,
+      oppositeColor === "w" ? to << BigInt(8) : to >> BigInt(8)
+    );
   }
 
   undoMove() {
@@ -306,6 +322,15 @@ export class PositionImpl implements Position {
 
     const moves = this.generateMoves();
 
+    // console.log(
+    //   moves.map(
+    //     (move) =>
+    //       `${SquaresReverse[move.from.toString(2)]} -> ${
+    //         SquaresReverse[move.to.toString(2)]
+    //       }`
+    //   )
+    // );
+
     if (depth === 1) {
       return moves.length;
     }
@@ -328,11 +353,11 @@ export class PositionImpl implements Position {
     return board & -board;
   }
 
-  isCollision(to: bigint) {
+  private isCollision(to: bigint) {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
-  isCapture(from: bigint, to: bigint) {
+  private isCapture(from: bigint, to: bigint) {
     if (this.board.w.piece & from) {
       return this.board.b.piece & to && this.isCollision(to);
     }
@@ -415,62 +440,49 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
+  private generatePawnAttack = (from: bigint, to: bigint, mask: bigint) => {
     const attacks = [];
+
+    const enPassantTarget = Squares[this.state.enPassantTarget];
+
+    if (to & Max64BitInt & mask && this.isCapture(from, to)) {
+      attacks.push({
+        from,
+        to,
+        kind: MoveType.CAPTURE,
+      });
+    }
+
+    if (enPassantTarget && to & enPassantTarget & mask) {
+      attacks.push({
+        from,
+        to,
+        kind: MoveType.EN_PASSANT,
+      });
+    }
+
+    return attacks;
+  };
+
+  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
+    let attacks: Move[] = [];
 
     switch (color) {
       case "w":
-        const rightAttackW = from << BigInt(7);
-
-        if (
-          rightAttackW &
-            Max64BitInt & // 64 bits
-            Masks.NOT_H_FILE && // no wrapping
-          this.isCapture(from, rightAttackW)
-        )
-          attacks.push({
-            from,
-            to: rightAttackW,
-            kind: MoveType.CAPTURE,
-          });
-
-        const leftAttackW = from << BigInt(9);
-
-        if (
-          leftAttackW & Max64BitInt & Masks.NOT_A_FILE &&
-          this.isCapture(from, leftAttackW)
-        )
-          attacks.push({
-            from,
-            to: leftAttackW,
-            kind: MoveType.CAPTURE,
-          });
+        attacks = attacks.concat(
+          this.generatePawnAttack(from, from << BigInt(7), Masks.NOT_H_FILE)
+        );
+        attacks = attacks.concat(
+          this.generatePawnAttack(from, from << BigInt(9), Masks.NOT_A_FILE)
+        );
         break;
       case "b":
-        const rightAttackB = from >> BigInt(7);
-
-        if (
-          rightAttackB & Masks.NOT_A_FILE &&
-          this.isCapture(from, rightAttackB)
-        )
-          attacks.push({
-            from,
-            to: rightAttackB,
-            kind: MoveType.CAPTURE,
-          });
-
-        const leftAttackB = from >> BigInt(9);
-
-        if (
-          leftAttackB & Masks.NOT_H_FILE &&
-          this.isCapture(from, leftAttackB)
-        ) {
-          attacks.push({
-            from,
-            to: leftAttackB,
-            kind: MoveType.CAPTURE,
-          });
-        }
+        attacks = attacks.concat(
+          this.generatePawnAttack(from, from >> BigInt(7), Masks.NOT_A_FILE)
+        );
+        attacks = attacks.concat(
+          this.generatePawnAttack(from, from >> BigInt(9), Masks.NOT_H_FILE)
+        );
         break;
       default:
         throw new Error("invalid player color!");
@@ -631,20 +643,20 @@ export class PositionImpl implements Position {
     return (board &= ~square);
   }
 
-  updateCastlingRights() {
+  private updateCastlingRights() {
     // TODO: implement
   }
 
-  updateActiveColor() {
+  private updateActiveColor() {
     this.state.activeColor =
       this.state.activeColor === Color.WHITE ? Color.BLACK : Color.WHITE;
   }
 
-  updateHalfMoveClock() {
+  private updateHalfMoveClock() {
     this.state.halfMoveClock++;
   }
 
-  updateFullMoveNumber() {
+  private updateFullMoveNumber() {
     if (this.state.activeColor === Color.WHITE) {
       this.state.fullMoveNumber++;
     }
