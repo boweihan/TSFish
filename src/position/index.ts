@@ -161,7 +161,9 @@ export class PositionImpl implements Position {
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
     // handle castle
+
     // handle en passant
+
     // handle promotion
 
     // update board state
@@ -497,89 +499,25 @@ export class PositionImpl implements Position {
       }));
   };
 
-  generateBishopMoves = (from: bigint): Move[] => {
+  private generateRayMoves = (
+    from: bigint,
+    direction: (from: bigint) => bigint
+  ): Move[] => {
     const moves = [];
 
-    // loop through each of the directions and add to the moveset
-    let noEaRay = from;
+    let ray = from;
 
-    while (noEaRay) {
-      noEaRay <<= BigInt(7);
-      noEaRay &= Max64BitInt;
-      noEaRay &= Masks.NOT_H_FILE;
+    while (ray) {
+      ray = direction(ray);
 
-      if (noEaRay) {
-        const collided = this.isCollision(noEaRay);
+      if (ray) {
+        const collided = this.isCollision(ray);
 
-        if (collided && !this.isCapture(from, noEaRay)) break; // hit own piece
+        if (collided && !this.isCapture(from, ray)) break; // hit own piece
 
         moves.push({
           from,
-          to: noEaRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let noWeRay = from;
-
-    while (noWeRay) {
-      noWeRay <<= BigInt(9);
-      noWeRay &= Max64BitInt;
-      noWeRay &= Masks.NOT_A_FILE;
-
-      if (noWeRay) {
-        const collided = this.isCollision(noWeRay);
-
-        if (collided && !this.isCapture(from, noWeRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: noWeRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let soEaRay = from;
-
-    while (soEaRay) {
-      soEaRay >>= BigInt(9);
-      soEaRay &= Masks.NOT_H_FILE;
-
-      if (soEaRay) {
-        const collided = this.isCollision(soEaRay);
-
-        if (collided && !this.isCapture(from, soEaRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: soEaRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let soWeRay = from;
-
-    while (soWeRay) {
-      soWeRay >>= BigInt(7);
-      soWeRay &= Masks.NOT_A_FILE;
-
-      if (soWeRay) {
-        const collided = this.isCollision(soWeRay);
-
-        if (collided && !this.isCapture(from, soWeRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: soWeRay,
+          to: ray,
           kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
         });
 
@@ -590,94 +528,71 @@ export class PositionImpl implements Position {
     return moves;
   };
 
+  generateBishopMoves = (from: bigint): Move[] => {
+    return this.generateRayMoves(from, (ray) => {
+      ray <<= BigInt(7);
+      ray &= Max64BitInt;
+      ray &= Masks.NOT_H_FILE;
+
+      return ray;
+    })
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray <<= BigInt(9);
+          ray &= Max64BitInt;
+          ray &= Masks.NOT_A_FILE;
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(7);
+          ray &= Masks.NOT_A_FILE;
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(9);
+          ray &= Masks.NOT_H_FILE;
+
+          return ray;
+        })
+      );
+  };
+
   generateRookMoves = (from: bigint): Move[] => {
-    const moves = [];
+    return this.generateRayMoves(from, (ray) => {
+      ray <<= BigInt(8);
+      ray &= Max64BitInt;
 
-    // loop through each of the directions and add to the moveset
-    let noRay = from;
+      return ray;
+    })
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(8);
 
-    while (noRay) {
-      noRay <<= BigInt(8);
-      noRay &= Max64BitInt;
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray <<= BigInt(1);
+          ray &= Masks.NOT_A_FILE;
 
-      if (noRay) {
-        const collided = this.isCollision(noRay);
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(1);
+          ray &= Masks.NOT_H_FILE;
 
-        if (collided && !this.isCapture(from, noRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: noRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let eaRay = from;
-
-    while (eaRay) {
-      eaRay >>= BigInt(1);
-      eaRay &= Masks.NOT_H_FILE;
-
-      if (eaRay) {
-        const collided = this.isCollision(eaRay);
-
-        if (collided && !this.isCapture(from, eaRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: eaRay,
-          kind: this.isCollision(eaRay) ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let soRay = from;
-
-    while (soRay) {
-      soRay >>= BigInt(8);
-
-      if (soRay) {
-        const collided = this.isCollision(soRay);
-
-        if (collided && !this.isCapture(from, soRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: soRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    let weRay = from;
-
-    while (weRay) {
-      weRay <<= BigInt(1);
-      weRay &= Masks.NOT_A_FILE;
-
-      if (weRay) {
-        const collided = this.isCollision(weRay);
-
-        if (collided && !this.isCapture(from, weRay)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: weRay,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    return moves;
+          return ray;
+        })
+      );
   };
 
   generateQueenMoves = (from: bigint): Move[] => {
