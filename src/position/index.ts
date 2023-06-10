@@ -220,9 +220,9 @@ export class PositionImpl implements Position {
 
     // update half move clock
     if (this.determinePiece(from) !== Pieces.PAWN) {
-      this.state.halfMoveClock++;
+      this.updateHalfMoveClock();
     } else {
-      this.state.halfMoveClock = 0;
+      this.resetHalfMoveClock();
     }
 
     this.updateBitboards(color, from, to);
@@ -236,7 +236,7 @@ export class PositionImpl implements Position {
     const oppositeColor = color === "w" ? "b" : "w";
 
     // update half move clock
-    this.state.halfMoveClock = 0;
+    this.resetHalfMoveClock();
 
     // update moving piece bitboard
     this.updateBitboards(color, from, to);
@@ -272,7 +272,7 @@ export class PositionImpl implements Position {
     );
 
     // update half move clock
-    this.state.halfMoveClock = 0;
+    this.resetHalfMoveClock();
   }
 
   undoMove() {
@@ -671,6 +671,10 @@ export class PositionImpl implements Position {
   private updateActiveColor() {
     this.state.activeColor =
       this.state.activeColor === Color.WHITE ? Color.BLACK : Color.WHITE;
+  }
+
+  private resetHalfMoveClock() {
+    this.state.halfMoveClock = 0;
   }
 
   private updateHalfMoveClock() {
