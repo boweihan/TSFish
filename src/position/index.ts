@@ -737,7 +737,8 @@ export class PositionImpl implements Position {
   }
 
   isCheck() {
-    // TODO: implement
+    const king = this.board[this.state.activeColor].king;
+    return this.isAttacked(king, this.state.activeColor);
   }
 
   isCheckmate() {
