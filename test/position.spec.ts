@@ -14,6 +14,43 @@ prettyPrint(
 );
 
 describe("Position", () => {
+  it("correctly handles the half move clock", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 50 1"
+    );
+    expect(position.state.halfMoveClock).toEqual(50);
+    position.makeMove({
+      from: Squares.b1,
+      to: Squares.c3,
+      kind: MoveType.QUIET,
+    });
+    expect(position.state.halfMoveClock).toEqual(51);
+    position.makeMove({
+      from: Squares.a7,
+      to: Squares.a6,
+      kind: MoveType.QUIET,
+    });
+    expect(position.state.halfMoveClock).toEqual(0);
+    position.makeMove({
+      from: Squares.c3,
+      to: Squares.d5,
+      kind: MoveType.QUIET,
+    });
+    expect(position.state.halfMoveClock).toEqual(1);
+    position.makeMove({
+      from: Squares.g8,
+      to: Squares.f6,
+      kind: MoveType.QUIET,
+    });
+    expect(position.state.halfMoveClock).toEqual(2);
+    position.makeMove({
+      from: Squares.d5,
+      to: Squares.e7,
+      kind: MoveType.CAPTURE,
+    });
+    expect(position.state.halfMoveClock).toEqual(0);
+  });
+
   it("makes an enpassant capture", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pp1p1ppp/8/2pPp3/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 3"
