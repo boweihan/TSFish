@@ -323,6 +323,14 @@ export class PositionImpl implements Position {
     generateMovesForPiece(this.board[color].queen, this.generateQueenMoves);
     generateMovesForPiece(this.board[color].king, this.generateKingMoves);
 
+    //  strip illegal moves (not performant)
+    moves = moves.filter((move) => {
+      this.makeMove(move);
+      const isLegal = !this.isCheck(color);
+      this.undoMove();
+      return isLegal;
+    });
+
     return moves;
   }
 
@@ -736,9 +744,9 @@ export class PositionImpl implements Position {
     return false;
   }
 
-  isCheck() {
-    const king = this.board[this.state.activeColor].king;
-    return this.isAttacked(king, this.state.activeColor);
+  isCheck(color: PlayerColor) {
+    const kingSquare = this.board[color].king;
+    return this.isAttacked(kingSquare, color);
   }
 
   isCheckmate() {
