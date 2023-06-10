@@ -679,6 +679,63 @@ export class PositionImpl implements Position {
     // TODO: implement
   }
 
+  isAttacked(square: bigint, color: PlayerColor) {
+    const opponentColor = color === Color.WHITE ? Color.BLACK : Color.WHITE;
+    const opponentBoard = this.board[opponentColor];
+
+    // generating attacks for pieces can effectively create masks for each piece type
+
+    // check if opponent's pawns are attacking
+    const pawnAttacks = this.generatePawnAttacks(square, color).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (pawnAttacks & opponentBoard.pawn) return true;
+
+    // check if opponent's knights are attacking
+    const knightAttacks = this.generateKnightMoves(square).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (knightAttacks & opponentBoard.knight) return true;
+
+    // check if opponent's bishops are attacking
+    const bishopAttacks = this.generateBishopMoves(square).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (bishopAttacks & opponentBoard.bishop) return true;
+
+    // check if opponent's rooks are attacking
+    const rookAttacks = this.generateRookMoves(square).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (rookAttacks & opponentBoard.rook) return true;
+
+    // check if opponent's queens are attacking
+    const queenAttacks = this.generateQueenMoves(square).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (queenAttacks & opponentBoard.queen) return true;
+
+    // check if opponent's king is attacking
+    const kingAttacks = this.generateKingMoves(square).reduce(
+      (a, b) => a | b.to,
+      BigInt(0)
+    );
+
+    if (kingAttacks & opponentBoard.king) return true;
+
+    return false;
+  }
+
   isCheck() {
     // TODO: implement
   }

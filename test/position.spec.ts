@@ -1,4 +1,4 @@
-import { MoveType } from "../src/constants";
+import { Color, MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
@@ -14,6 +14,41 @@ prettyPrint(
 );
 
 describe("Position", () => {
+  it("correctly checks if a piece is under attack", () => {
+    const position = new PositionImpl(
+      "r2q1bnr/p1ppk1pp/bNn2p2/1p2p3/3P2Q1/4P3/PPP2PPP/R1B1KBNR b KQ - 5 7"
+    );
+    expect(position.isAttacked(Squares.e5, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.d7, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.a8, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.g7, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.b5, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.d8, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.f8, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.g8, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.h8, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.h7, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.f6, Color.BLACK)).toEqual(false);
+    expect(position.isAttacked(Squares.e7, Color.BLACK)).toEqual(false);
+
+    expect(position.isAttacked(Squares.b6, Color.WHITE)).toEqual(true);
+    expect(position.isAttacked(Squares.d4, Color.WHITE)).toEqual(true);
+    expect(position.isAttacked(Squares.g4, Color.WHITE)).toEqual(false);
+    expect(position.isAttacked(Squares.e3, Color.WHITE)).toEqual(false);
+    expect(position.isAttacked(Squares.f2, Color.WHITE)).toEqual(false);
+    expect(position.isAttacked(Squares.g1, Color.WHITE)).toEqual(false);
+    expect(position.isAttacked(Squares.h1, Color.WHITE)).toEqual(false);
+  });
+
+  it("correctly checks if a piece is under attack", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2"
+    );
+    expect(position.isAttacked(Squares.e5, Color.BLACK)).toEqual(true);
+    expect(position.isAttacked(Squares.e5, Color.WHITE)).toEqual(false);
+    expect(position.isAttacked(Squares.d4, Color.WHITE)).toEqual(true);
+  });
+
   it("correctly handles the half move clock", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 50 1"
