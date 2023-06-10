@@ -193,9 +193,12 @@ export class PositionImpl implements Position {
     return piece;
   }
 
-  private updateBitboards(color: PlayerColor, from: BitBoard, to?: BitBoard) {
-    const piece = this.determinePiece(from);
-
+  private updateBitboards(
+    color: PlayerColor,
+    piece: Piece,
+    from: BitBoard,
+    to?: BitBoard
+  ) {
     // update piece bitboard
     this.board[color][piece] = this.remove(this.board[color][piece], from);
 
@@ -218,18 +221,23 @@ export class PositionImpl implements Position {
 
     const color = this.board.w.piece & from ? "w" : "b";
 
+    const piece = this.determinePiece(from);
+
     // update half move clock
-    if (this.determinePiece(from) !== Pieces.PAWN) {
+    if (piece !== Pieces.PAWN) {
       this.updateHalfMoveClock();
     } else {
       this.resetHalfMoveClock();
     }
 
-    this.updateBitboards(color, from, to);
+    this.updateBitboards(color, piece, from, to);
   }
 
   private makeCaptureMove(move: Move) {
     const { from, to } = move;
+
+    const piece = this.determinePiece(from);
+    const capturedPiece = this.determinePiece(to);
 
     // check which color is moving
     const color = this.board.w.piece & from ? "w" : "b";
@@ -239,10 +247,10 @@ export class PositionImpl implements Position {
     this.resetHalfMoveClock();
 
     // update moving piece bitboard
-    this.updateBitboards(color, from, to);
+    this.updateBitboards(color, piece, from, to);
 
     // update opponent's piece bitboard
-    this.updateBitboards(oppositeColor, to);
+    this.updateBitboards(oppositeColor, capturedPiece, to);
   }
 
   private makeDoublePawnPush(move: Move) {
@@ -263,11 +271,12 @@ export class PositionImpl implements Position {
     const oppositeColor = color === "w" ? "b" : "w";
 
     // update moving piece bitboard
-    this.updateBitboards(color, from, to);
+    this.updateBitboards(color, Pieces.PAWN, from, to);
 
     // update opponent's piece bitboard
     this.updateBitboards(
       oppositeColor,
+      Pieces.PAWN,
       oppositeColor === "w" ? to << BigInt(8) : to >> BigInt(8)
     );
 
@@ -338,8 +347,10 @@ export class PositionImpl implements Position {
     return moves;
   }
 
-  perft(depth: number) {
-    if (!depth) return 1;
+  perft(depth: number, move?: string, startingDepth: number = depth) {
+    if (depth === 0) {
+      return 1;
+    }
 
     const moves = this.generateMoves();
 
@@ -348,21 +359,31 @@ export class PositionImpl implements Position {
     //     (move) =>
     //       `${SquaresReverse[move.from.toString(2)]} -> ${
     //         SquaresReverse[move.to.toString(2)]
-    //       }`
+    //       } : ${move.kind}`
     //   )
     // );
 
     if (depth === 1) {
-      return moves.length;
+      const nodes = moves.length;
+
+      return nodes;
     }
 
     let nodes = 0;
 
     for (let move of moves) {
       this.makeMove(move);
-      nodes += this.perft(depth - 1);
+      nodes += this.perft(
+        depth - 1,
+        `${SquaresReverse[move.from.toString(2)]}${
+          SquaresReverse[move.to.toString(2)]
+        }`,
+        startingDepth
+      );
       this.undoMove();
     }
+
+    if (depth === startingDepth - 1) console.log(`${move}: ${nodes}`);
 
     return nodes;
   }

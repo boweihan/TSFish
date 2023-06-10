@@ -2,7 +2,7 @@ import { DefaultFEN, EngineInput } from "../constants";
 import { Position, PositionImpl } from "../position";
 
 export default class UCIEngine {
-  position: Position;
+  position: PositionImpl;
 
   constructor() {
     this.position = new PositionImpl();
@@ -38,7 +38,7 @@ export default class UCIEngine {
 
         const start = performance.now();
 
-        const nodes = new PositionImpl().perft(depth);
+        const nodes = this.position.perft(depth);
 
         const end = performance.now();
         const time = end - start;
