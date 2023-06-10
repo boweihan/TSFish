@@ -331,6 +331,10 @@ export class PositionImpl implements Position {
       return isLegal;
     });
 
+    if (moves.length === 0) {
+      // checkmate
+    }
+
     return moves;
   }
 
