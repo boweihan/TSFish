@@ -154,7 +154,7 @@ export class PositionImpl implements Position {
     this.history.push(cloneDeep({ board: this.board, state: this.state }));
 
     // clear enpassant target
-    this.state.enPassantTarget = "-";
+    this.updateEnPassantSquare("-");
 
     // handle quiet move
     move.kind === MoveType.QUIET && this.makeQuietMove(move);
@@ -167,10 +167,6 @@ export class PositionImpl implements Position {
 
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
-
-    // handle castle
-
-    // handle promotion
 
     // update board state
     this.updateActiveColor();
@@ -245,7 +241,7 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const square = color === "w" ? from << BigInt(8) : from >> BigInt(8);
 
-    this.state.enPassantTarget = SquaresReverse[square.toString(2)];
+    this.updateEnPassantSquare(SquaresReverse[square.toString(2)]);
 
     this.makeQuietMove(move);
   }
@@ -643,6 +639,10 @@ export class PositionImpl implements Position {
     return (board &= ~square);
   }
 
+  private updateEnPassantSquare(target: string) {
+    this.state.enPassantTarget = target;
+  }
+
   private updateCastlingRights() {
     // TODO: implement
   }
@@ -662,15 +662,7 @@ export class PositionImpl implements Position {
     }
   }
 
-  updateEnPassantSquare() {
-    // TODO: implement
-  }
-
   incrementClock() {
-    // TODO: implement
-  }
-
-  isAttacked() {
     // TODO: implement
   }
 
@@ -684,17 +676,29 @@ export class PositionImpl implements Position {
 
   isStalemate() {
     // TODO: implement
+    return false;
   }
 
   isInsufficientMaterial() {
     // TODO: implement
+    return false;
   }
 
   isThreefoldRepetition() {
     // TODO: implement
+    return false;
+  }
+
+  isFiftyMoveRule() {
+    // https://www.chessprogramming.org/Halfmove_Clock
+    return this.state.halfMoveClock >= 100;
   }
 
   isDraw() {
-    // TODO: implement
+    return (
+      this.isStalemate() ||
+      this.isInsufficientMaterial() ||
+      this.isThreefoldRepetition()
+    );
   }
 }
