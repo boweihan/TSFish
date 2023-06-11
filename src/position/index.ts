@@ -41,6 +41,8 @@ type State = {
 export interface Position {
   board: ClassicalBitBoards;
   state: State;
+
+  perft: (depth: number) => number;
 }
 
 export class PositionImpl implements Position {

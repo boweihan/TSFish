@@ -2,7 +2,7 @@ import { DefaultFEN, EngineInput } from "../constants";
 import { Position, PositionImpl } from "../position";
 
 export default class UCIEngine {
-  position: PositionImpl;
+  position: Position;
 
   constructor() {
     this.position = new PositionImpl();
