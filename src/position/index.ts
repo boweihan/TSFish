@@ -385,7 +385,7 @@ export class PositionImpl implements Position {
       this.undoMove();
     }
 
-    if (depth === startingDepth - 1) console.log(`${move}: ${nodes}`);
+    // if (depth === startingDepth - 1) console.log(`${move}: ${nodes}`);
 
     return nodes;
   }
