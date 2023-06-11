@@ -21,8 +21,10 @@ import {
   Max64BitInt,
   MoveType,
   Pieces,
+  Rank1,
   Rank2,
   Rank7,
+  Rank8,
   Squares,
   SquaresReverse,
 } from "../constants";
@@ -170,6 +172,19 @@ export class PositionImpl implements Position {
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
+    // handle promotions
+    move.kind === MoveType.KNIGHT_PROMOTION ||
+      move.kind === MoveType.BISHOP_PROMOTION ||
+      move.kind === MoveType.ROOK_PROMOTION ||
+      (move.kind === MoveType.QUEEN_PROMOTION && this.makePromotionMove(move));
+
+    // handle promotion captures
+    move.kind === MoveType.KNIGHT_PROMO_CAPTURE ||
+      move.kind === MoveType.BISHOP_PROMO_CAPTURE ||
+      move.kind === MoveType.ROOK_PROMO_CAPTURE ||
+      (move.kind === MoveType.QUEEN_PROMO_CAPTURE &&
+        this.makePromotionCapture(move));
+
     // update board state
     this.updateActiveColor();
 
@@ -199,21 +214,27 @@ export class PositionImpl implements Position {
     color: PlayerColor,
     piece: Piece,
     from: BitBoard,
-    to?: BitBoard
+    to?: BitBoard,
+    promotion?: Piece
   ) {
     // update piece bitboard
     this.board[color][piece] = this.remove(this.board[color][piece], from);
 
     if (to) {
-      // if to is null, it's a capture
-      this.board[color][piece] = this.set(this.board[color][piece], to);
+      if (promotion) {
+        this.board[color][promotion] = this.set(
+          this.board[color][promotion],
+          to
+        );
+      } else {
+        this.board[color][piece] = this.set(this.board[color][piece], to);
+      }
     }
 
     // update pieces bitboard
     this.board[color].piece = this.remove(this.board[color].piece, from);
 
     if (to) {
-      // if to is null, it's a capture
       this.board[color].piece = this.set(this.board[color].piece, to);
     }
   }
@@ -284,6 +305,59 @@ export class PositionImpl implements Position {
 
     // update half move clock
     this.resetHalfMoveClock();
+  }
+
+  private determinePromotionPiece(move: Move): Piece {
+    const { kind } = move;
+
+    switch (kind) {
+      case MoveType.KNIGHT_PROMOTION:
+      case MoveType.KNIGHT_PROMO_CAPTURE:
+        return Pieces.KNIGHT;
+      case MoveType.BISHOP_PROMOTION:
+      case MoveType.BISHOP_PROMO_CAPTURE:
+        return Pieces.BISHOP;
+      case MoveType.ROOK_PROMOTION:
+      case MoveType.ROOK_PROMO_CAPTURE:
+        return Pieces.ROOK;
+      case MoveType.QUEEN_PROMOTION:
+      case MoveType.QUEEN_PROMO_CAPTURE:
+        return Pieces.QUEEN;
+      default:
+        throw new Error(`Invalid promotion move type: ${kind}`);
+    }
+  }
+
+  private makePromotionMove(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+
+    const promoPiece = this.determinePromotionPiece(move);
+
+    // update half move clock
+    this.resetHalfMoveClock();
+
+    this.updateBitboards(color, Pieces.PAWN, from, to, promoPiece);
+  }
+
+  private makePromotionCapture(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+    const oppositeColor = color === "w" ? "b" : "w";
+
+    const promoPiece = this.determinePromotionPiece(move);
+    const capturedPiece = this.determinePiece(to);
+
+    // update half move clock
+    this.resetHalfMoveClock();
+
+    // update moving piece bitboard
+    this.updateBitboards(color, Pieces.PAWN, from, to, promoPiece);
+
+    // update opponent's piece bitboard
+    this.updateBitboards(oppositeColor, capturedPiece, to);
   }
 
   undoMove() {
@@ -385,7 +459,7 @@ export class PositionImpl implements Position {
       this.undoMove();
     }
 
-    if (depth === startingDepth - 1) console.log(`${move}: ${nodes}`);
+    // if (depth === startingDepth - 1) console.log(`${move}: ${nodes}`);
 
     return nodes;
   }
@@ -425,11 +499,16 @@ export class PositionImpl implements Position {
           singlePushW & Max64BitInt && // 64 bits
           !this.isCollision(singlePushW)
         ) {
-          moves.push({
-            from,
-            to: singlePushW,
-            kind: MoveType.QUIET,
-          }); // ensure pawn pushes don't go off the board for white
+          const promotions = this.generatePromotions(from, singlePushW);
+          if (promotions.length > 0) {
+            moves.push(...promotions);
+          } else {
+            moves.push({
+              from,
+              to: singlePushW,
+              kind: MoveType.QUIET,
+            }); // ensure pawn pushes don't go off the board for white
+          }
         }
 
         // double push
@@ -454,11 +533,17 @@ export class PositionImpl implements Position {
         const singlePushB = from >> BigInt(8);
 
         if (!this.isCollision(singlePushB)) {
-          moves.push({
-            from,
-            to: singlePushB,
-            kind: MoveType.QUIET,
-          });
+          const promotions = this.generatePromotions(from, singlePushB);
+
+          if (promotions.length > 0) {
+            moves.push(...promotions);
+          } else {
+            moves.push({
+              from,
+              to: singlePushB,
+              kind: MoveType.QUIET,
+            });
+          }
         }
 
         // double push
@@ -484,17 +569,95 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  private generatePawnAttack = (from: bigint, to: bigint, mask: bigint) => {
-    const attacks = [];
+  private generatePromotions = (from: bigint, to: bigint) => {
+    const promotions = [];
+
+    if (
+      (this.state.activeColor === "w" && to & Rank8) ||
+      (this.state.activeColor === "b" && to & Rank1)
+    ) {
+      // black or white promotion
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.KNIGHT_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.BISHOP_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.ROOK_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.QUEEN_PROMOTION,
+      });
+    }
+
+    return promotions;
+  };
+
+  private generateCapturePromotions = (
+    from: bigint,
+    to: bigint,
+    color: PlayerColor
+  ) => {
+    const promotions = [];
+
+    if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
+      // black or white promotion
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.KNIGHT_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.BISHOP_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.ROOK_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.QUEEN_PROMO_CAPTURE,
+      });
+    }
+
+    return promotions;
+  };
+
+  private generatePawnAttack = (
+    from: bigint,
+    to: bigint,
+    mask: bigint,
+    color: PlayerColor
+  ) => {
+    let attacks = [];
 
     const enPassantTarget = Squares[this.state.enPassantTarget];
 
     if (to & Max64BitInt & mask && this.isCapture(from, to)) {
-      attacks.push({
-        from,
-        to,
-        kind: MoveType.CAPTURE,
-      });
+      const promotions = this.generateCapturePromotions(from, to, color);
+
+      if (promotions.length > 0) {
+        attacks.push(...promotions);
+      } else {
+        attacks.push({
+          from,
+          to,
+          kind: MoveType.CAPTURE,
+        });
+      }
     }
 
     if (enPassantTarget && to & enPassantTarget & mask) {
@@ -514,18 +677,38 @@ export class PositionImpl implements Position {
     switch (color) {
       case "w":
         attacks = attacks.concat(
-          this.generatePawnAttack(from, from << BigInt(7), Masks.NOT_H_FILE)
+          this.generatePawnAttack(
+            from,
+            from << BigInt(7),
+            Masks.NOT_H_FILE,
+            color
+          )
         );
         attacks = attacks.concat(
-          this.generatePawnAttack(from, from << BigInt(9), Masks.NOT_A_FILE)
+          this.generatePawnAttack(
+            from,
+            from << BigInt(9),
+            Masks.NOT_A_FILE,
+            color
+          )
         );
         break;
       case "b":
         attacks = attacks.concat(
-          this.generatePawnAttack(from, from >> BigInt(7), Masks.NOT_A_FILE)
+          this.generatePawnAttack(
+            from,
+            from >> BigInt(7),
+            Masks.NOT_A_FILE,
+            color
+          )
         );
         attacks = attacks.concat(
-          this.generatePawnAttack(from, from >> BigInt(9), Masks.NOT_H_FILE)
+          this.generatePawnAttack(
+            from,
+            from >> BigInt(9),
+            Masks.NOT_H_FILE,
+            color
+          )
         );
         break;
       default:
@@ -719,7 +902,8 @@ export class PositionImpl implements Position {
   }
 
   isAttacked(square: bigint, color: PlayerColor) {
-    const opponentColor = color === Color.WHITE ? Color.BLACK : Color.WHITE;
+    const opponentColor =
+      this.state.activeColor === Color.WHITE ? Color.BLACK : Color.WHITE;
     const opponentBoard = this.board[opponentColor];
 
     // generating attacks for pieces can effectively create masks for each piece type
