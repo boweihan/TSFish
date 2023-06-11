@@ -17,22 +17,19 @@ import {
 import {
   Color,
   DefaultFEN,
+  Masks,
+  Max64BitInt,
   MoveType,
   Pieces,
+  Rank1,
+  Rank2,
+  Rank7,
+  Rank8,
+  Squares,
   SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
-import { prettyPrint } from "../util/prettyPrint";
-import {
-  generateBishopMoves,
-  generateKingMoves,
-  generateKnightMoves,
-  generateMoves,
-  generatePawnAttacks,
-  generateQueenMoves,
-  generateRookMoves,
-} from "../util/moves";
 
 type State = {
   activeColor: PlayerColor;
@@ -47,10 +44,6 @@ export interface Position {
   state: State;
 
   perft: (depth: number) => number;
-  isCollision: (bitboard: BitBoard) => bigint;
-  isCapture: (from: BitBoard, to: BitBoard) => bigint;
-  isCheck: (color: PlayerColor) => boolean;
-  isAttacked: (square: BitBoard, color: PlayerColor) => boolean;
   makeMove: (move: Move) => void;
   undoMove: () => void;
 }
@@ -67,7 +60,7 @@ export class PositionImpl implements Position {
     this.history = [];
   }
 
-  private fenToBoard = (fen: string): ClassicalBoards => {
+  fenToBoard = (fen: string): ClassicalBoards => {
     const piece = fen.split(" ")[0];
     const ranks = piece.split("/");
 
@@ -122,7 +115,7 @@ export class PositionImpl implements Position {
     return board;
   };
 
-  private fenToState(fen: string): State {
+  fenToState(fen: string): State {
     if (fen === "startpos") {
       return {
         activeColor: "w",
@@ -200,7 +193,7 @@ export class PositionImpl implements Position {
     this.updateFullMoveNumber();
   }
 
-  private determinePiece(from: BitBoard): Piece {
+  determinePiece(from: BitBoard): Piece {
     const { w, b } = this.board;
 
     let piece;
@@ -219,7 +212,7 @@ export class PositionImpl implements Position {
     return piece;
   }
 
-  private determinePromotionPiece(move: Move): Piece {
+  determinePromotionPiece(move: Move): Piece {
     const { kind } = move;
 
     switch (kind) {
@@ -240,7 +233,7 @@ export class PositionImpl implements Position {
     }
   }
 
-  private updateBitboards(
+  updateBitboards(
     color: PlayerColor,
     piece: Piece,
     from: BitBoard,
@@ -269,7 +262,7 @@ export class PositionImpl implements Position {
     }
   }
 
-  private makeQuietMove(move: Move) {
+  makeQuietMove(move: Move) {
     const { from, to } = move;
 
     const color = this.board.w.piece & from ? "w" : "b";
@@ -286,7 +279,7 @@ export class PositionImpl implements Position {
     this.updateBitboards(color, piece, from, to);
   }
 
-  private makeCaptureMove(move: Move) {
+  makeCaptureMove(move: Move) {
     const { from, to } = move;
 
     const piece = this.determinePiece(from);
@@ -306,7 +299,7 @@ export class PositionImpl implements Position {
     this.updateBitboards(oppositeColor, capturedPiece, to);
   }
 
-  private makeDoublePawnPush(move: Move) {
+  makeDoublePawnPush(move: Move) {
     const { from } = move;
 
     const color = this.board.w.piece & from ? "w" : "b";
@@ -317,7 +310,7 @@ export class PositionImpl implements Position {
     this.makeQuietMove(move);
   }
 
-  private makeEnPassantCapture(move: Move) {
+  makeEnPassantCapture(move: Move) {
     const { from, to } = move;
 
     const color = this.board.w.piece & from ? "w" : "b";
@@ -337,7 +330,7 @@ export class PositionImpl implements Position {
     this.resetHalfMoveClock();
   }
 
-  private makePromotionMove(move: Move) {
+  makePromotionMove(move: Move) {
     const { from, to } = move;
 
     const color = this.board.w.piece & from ? "w" : "b";
@@ -350,7 +343,7 @@ export class PositionImpl implements Position {
     this.updateBitboards(color, Pieces.PAWN, from, to, promoPiece);
   }
 
-  private makePromotionCapture(move: Move) {
+  makePromotionCapture(move: Move) {
     const { from, to } = move;
 
     const color = this.board.w.piece & from ? "w" : "b";
@@ -387,7 +380,7 @@ export class PositionImpl implements Position {
       return 1;
     }
 
-    const moves = generateMoves(this);
+    const moves = this.generateMoves();
 
     // console.log(
     //   moves.map(
@@ -449,35 +442,31 @@ export class PositionImpl implements Position {
     return (board &= ~square);
   }
 
-  private updateEnPassantSquare(target: string) {
+  updateEnPassantSquare(target: string) {
     this.state.enPassantTarget = target;
   }
 
-  private updateCastlingRights() {
+  updateCastlingRights() {
     // TODO: implement
   }
 
-  private updateActiveColor() {
+  updateActiveColor() {
     this.state.activeColor =
       this.state.activeColor === Color.WHITE ? Color.BLACK : Color.WHITE;
   }
 
-  private resetHalfMoveClock() {
+  resetHalfMoveClock() {
     this.state.halfMoveClock = 0;
   }
 
-  private updateHalfMoveClock() {
+  updateHalfMoveClock() {
     this.state.halfMoveClock++;
   }
 
-  private updateFullMoveNumber() {
+  updateFullMoveNumber() {
     if (this.state.activeColor === Color.WHITE) {
       this.state.fullMoveNumber++;
     }
-  }
-
-  incrementClock() {
-    // TODO: implement
   }
 
   isAttacked(square: bigint, color: PlayerColor) {
@@ -487,7 +476,7 @@ export class PositionImpl implements Position {
     // generating attacks for pieces can effectively create masks for each piece type
 
     // check if opponent's pawns are attacking
-    const pawnAttacks = generatePawnAttacks(square, color, this).reduce(
+    const pawnAttacks = this.generatePawnAttacks(square, color).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -495,7 +484,7 @@ export class PositionImpl implements Position {
     if (pawnAttacks & opponentBoard.pawn) return true;
 
     // check if opponent's knights are attacking
-    const knightAttacks = generateKnightMoves(square, this).reduce(
+    const knightAttacks = this.generateKnightMoves(square).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -503,7 +492,7 @@ export class PositionImpl implements Position {
     if (knightAttacks & opponentBoard.knight) return true;
 
     // check if opponent's bishops are attacking
-    const bishopAttacks = generateBishopMoves(square, this).reduce(
+    const bishopAttacks = this.generateBishopMoves(square).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -511,7 +500,7 @@ export class PositionImpl implements Position {
     if (bishopAttacks & opponentBoard.bishop) return true;
 
     // check if opponent's rooks are attacking
-    const rookAttacks = generateRookMoves(square, this).reduce(
+    const rookAttacks = this.generateRookMoves(square).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -519,7 +508,7 @@ export class PositionImpl implements Position {
     if (rookAttacks & opponentBoard.rook) return true;
 
     // check if opponent's queens are attacking
-    const queenAttacks = generateQueenMoves(square, this).reduce(
+    const queenAttacks = this.generateQueenMoves(square).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -527,7 +516,7 @@ export class PositionImpl implements Position {
     if (queenAttacks & opponentBoard.queen) return true;
 
     // check if opponent's king is attacking
-    const kingAttacks = generateKingMoves(square, this).reduce(
+    const kingAttacks = this.generateKingMoves(square).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -573,4 +562,433 @@ export class PositionImpl implements Position {
       this.isThreefoldRepetition()
     );
   }
+
+  generateMoves = () => {
+    let moves: Move[] = [];
+
+    const generateMovesForPiece = (
+      board: bigint,
+      callback: (...args: any[]) => Move[]
+    ) => {
+      while (board) {
+        const ls1b = this.getLS1B(board);
+        moves = moves.concat(callback(ls1b));
+        board ^= ls1b; // remove ls1b from board
+      }
+    };
+
+    const partialRight = (fn: Function, ...presetArgs: any[]) =>
+      function partiallyApplied(...laterArgs: any[]) {
+        return fn(...laterArgs, ...presetArgs);
+      };
+
+    const color = this.state.activeColor;
+
+    generateMovesForPiece(
+      this.board[color].pawn,
+      partialRight(this.generatePawnMoves, color)
+    );
+    generateMovesForPiece(
+      this.board[color].pawn,
+      partialRight(this.generatePawnAttacks, color)
+    );
+    generateMovesForPiece(this.board[color].knight, this.generateKnightMoves);
+    generateMovesForPiece(this.board[color].bishop, this.generateBishopMoves);
+    generateMovesForPiece(this.board[color].rook, this.generateRookMoves);
+    generateMovesForPiece(this.board[color].queen, this.generateQueenMoves);
+    generateMovesForPiece(this.board[color].king, this.generateKingMoves);
+
+    //  strip illegal moves (not performant)
+    moves = moves.filter((move) => {
+      this.makeMove(move);
+      const isLegal = !this.isCheck(color);
+      this.undoMove();
+      return isLegal;
+    });
+
+    if (moves.length === 0) {
+      // checkmate
+    }
+
+    return moves;
+  };
+
+  getLS1B = (board: bigint) => {
+    // intersection of binary number and it's twos complement isolates the LS1B
+    // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
+    // javascript represents negative numbers as the twos complement
+    return board & -board;
+  };
+
+  generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
+    const moves = [];
+
+    switch (color) {
+      case "w":
+        // single push
+        const singlePushW = from << BigInt(8);
+
+        if (
+          singlePushW & Max64BitInt && // 64 bits
+          !this.isCollision(singlePushW)
+        ) {
+          const promotions = this.generatePromotions(from, singlePushW, color);
+          if (promotions.length > 0) {
+            moves.push(...promotions);
+          } else {
+            moves.push({
+              from,
+              to: singlePushW,
+              kind: MoveType.QUIET,
+            }); // ensure pawn pushes don't go off the board for white
+          }
+        }
+
+        // double push
+        const doublePushW = from << BigInt(16);
+
+        if (
+          from & Rank2 && // rank2
+          doublePushW & Max64BitInt && // 64 bits
+          !this.isCollision(singlePushW) &&
+          !this.isCollision(doublePushW)
+        ) {
+          moves.push({
+            from,
+            to: doublePushW,
+            kind: MoveType.DOUBLE_PAWN_PUSH,
+          });
+        }
+        // promotion
+        break;
+      case "b":
+        // single push
+        const singlePushB = from >> BigInt(8);
+
+        if (!this.isCollision(singlePushB)) {
+          const promotions = this.generatePromotions(from, singlePushB, color);
+
+          if (promotions.length > 0) {
+            moves.push(...promotions);
+          } else {
+            moves.push({
+              from,
+              to: singlePushB,
+              kind: MoveType.QUIET,
+            }); // ensure pawn pushes don't go off the board for white
+          }
+        }
+
+        // double push
+        const doublePushB = from >> BigInt(16);
+
+        if (
+          from & Rank7 && // rank 7
+          !this.isCollision(singlePushB) &&
+          !this.isCollision(doublePushB)
+        ) {
+          moves.push({
+            from,
+            to: doublePushB,
+            kind: MoveType.DOUBLE_PAWN_PUSH,
+          });
+        }
+        // promotion
+        break;
+      default:
+        throw new Error("invalid player color!");
+    }
+
+    return moves;
+  };
+
+  generatePromotions = (from: bigint, to: bigint, color: PlayerColor) => {
+    const promotions = [];
+
+    if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
+      // black or white promotion
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.KNIGHT_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.BISHOP_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.ROOK_PROMOTION,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.QUEEN_PROMOTION,
+      });
+    }
+
+    return promotions;
+  };
+
+  generateCapturePromotions = (
+    from: bigint,
+    to: bigint,
+    color: PlayerColor
+  ) => {
+    const promotions = [];
+
+    if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
+      // black or white promotion
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.KNIGHT_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.BISHOP_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.ROOK_PROMO_CAPTURE,
+      });
+      promotions.push({
+        from,
+        to,
+        kind: MoveType.QUEEN_PROMO_CAPTURE,
+      });
+    }
+
+    return promotions;
+  };
+
+  generatePawnAttack = (
+    from: bigint,
+    to: bigint,
+    mask: bigint,
+    color: PlayerColor
+  ) => {
+    const attacks = [];
+
+    const enPassantTarget = Squares[this.state.enPassantTarget];
+
+    if (to & Max64BitInt & mask && this.isCapture(from, to)) {
+      const promotions = this.generateCapturePromotions(from, to, color);
+
+      if (promotions.length > 0) {
+        attacks.push(...promotions);
+      } else {
+        attacks.push({
+          from,
+          to,
+          kind: MoveType.CAPTURE,
+        });
+      }
+    }
+
+    if (enPassantTarget && to & enPassantTarget & mask) {
+      attacks.push({
+        from,
+        to,
+        kind: MoveType.EN_PASSANT,
+      });
+    }
+
+    return attacks;
+  };
+
+  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
+    let attacks: Move[] = [];
+
+    switch (color) {
+      case "w":
+        attacks = attacks.concat(
+          this.generatePawnAttack(
+            from,
+            from << BigInt(7),
+            Masks.NOT_H_FILE,
+            color
+          )
+        );
+        attacks = attacks.concat(
+          this.generatePawnAttack(
+            from,
+            from << BigInt(9),
+            Masks.NOT_A_FILE,
+            color
+          )
+        );
+        break;
+      case "b":
+        attacks = attacks.concat(
+          this.generatePawnAttack(
+            from,
+            from >> BigInt(7),
+            Masks.NOT_A_FILE,
+            color
+          )
+        );
+        attacks = attacks.concat(
+          this.generatePawnAttack(
+            from,
+            from >> BigInt(9),
+            Masks.NOT_H_FILE,
+            color
+          )
+        );
+        break;
+      default:
+        throw new Error("invalid player color!");
+    }
+
+    return attacks;
+  };
+
+  generateKnightMoves = (from: bigint): Move[] => {
+    return [
+      (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
+      (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
+      (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
+      (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
+      (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
+      (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
+      (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
+      (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+    ]
+      .filter(Boolean)
+      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
+      .map((to) => ({
+        from,
+        to,
+        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
+      }));
+  };
+
+  generateRayMoves = (
+    from: bigint,
+    direction: (from: bigint) => bigint
+  ): Move[] => {
+    const moves = [];
+
+    let ray = from;
+
+    while (ray) {
+      ray = direction(ray);
+
+      if (ray) {
+        const collided = this.isCollision(ray);
+
+        if (collided && !this.isCapture(from, ray)) break; // hit own piece
+
+        moves.push({
+          from,
+          to: ray,
+          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
+        });
+
+        if (collided) break;
+      }
+    }
+
+    return moves;
+  };
+
+  generateBishopMoves = (from: bigint): Move[] => {
+    return this.generateRayMoves(from, (ray) => {
+      ray <<= BigInt(7);
+      ray &= Max64BitInt;
+      ray &= Masks.NOT_H_FILE;
+
+      return ray;
+    })
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray <<= BigInt(9);
+          ray &= Max64BitInt;
+          ray &= Masks.NOT_A_FILE;
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(7);
+          ray &= Masks.NOT_A_FILE;
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(9);
+          ray &= Masks.NOT_H_FILE;
+
+          return ray;
+        })
+      );
+  };
+
+  generateRookMoves = (from: bigint): Move[] => {
+    return this.generateRayMoves(from, (ray) => {
+      ray <<= BigInt(8);
+      ray &= Max64BitInt;
+
+      return ray;
+    })
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(8);
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray <<= BigInt(1);
+          ray &= Masks.NOT_A_FILE;
+
+          return ray;
+        })
+      )
+      .concat(
+        this.generateRayMoves(from, (ray) => {
+          ray >>= BigInt(1);
+          ray &= Masks.NOT_H_FILE;
+
+          return ray;
+        })
+      );
+  };
+
+  generateQueenMoves = (from: bigint): Move[] => {
+    return this.generateBishopMoves(from)
+      .concat(this.generateRookMoves(from))
+      .map((move) => ({
+        ...move,
+      }));
+  };
+
+  generateKingMoves = (from: bigint): Move[] => {
+    return [
+      (from << BigInt(8)) & Max64BitInt, // no
+      (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
+      (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
+      (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
+      from >> BigInt(8), // so
+      (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
+      (from << BigInt(1)) & Masks.NOT_A_FILE, // we
+      (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
+    ]
+      .filter(Boolean)
+      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
+      .map((to) => ({
+        from,
+        to,
+        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
+      }));
+  };
 }

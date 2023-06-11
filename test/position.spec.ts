@@ -2,16 +2,6 @@ import { Color, MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
-import {
-  generateBishopMoves,
-  generateKingMoves,
-  generateKnightMoves,
-  generatePawnAttacks,
-  generatePawnMoves,
-  generateQueenMoves,
-  generateRookMoves,
-  getLS1B,
-} from "../src/util/moves";
 import { prettyPrint } from "../src/util/prettyPrint";
 
 // prettyPrint(
@@ -28,10 +18,10 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
     );
-    const wMoves = generatePawnAttacks(Squares.e7, Color.WHITE, position);
+    const wMoves = position.generatePawnAttacks(Squares.e7, Color.WHITE);
     expect(wMoves.length).toEqual(8);
 
-    const bMoves = generatePawnAttacks(Squares.e2, Color.BLACK, position);
+    const bMoves = position.generatePawnAttacks(Squares.e2, Color.BLACK);
     expect(bMoves.length).toEqual(8);
   });
 
@@ -40,10 +30,10 @@ describe("Position", () => {
       "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
     );
 
-    const wMoves = generatePawnMoves(Squares.e7, Color.WHITE, position);
+    const wMoves = position.generatePawnMoves(Squares.e7, Color.WHITE);
     expect(wMoves.length).toEqual(4);
 
-    const bMoves = generatePawnMoves(Squares.e2, Color.BLACK, position);
+    const bMoves = position.generatePawnMoves(Squares.e2, Color.BLACK);
     expect(bMoves.length).toEqual(4);
   });
 
@@ -201,7 +191,8 @@ describe("Position", () => {
       "rnbqkbnr/pp1p1ppp/8/2pPp3/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 3"
     );
     expect(
-      generatePawnAttacks(BigInt(Squares.d5), "w", position)
+      position
+        .generatePawnAttacks(BigInt(Squares.d5), "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -213,7 +204,8 @@ describe("Position", () => {
       "rn2kbn1/p1p1ppp1/3rq3/1p1Q1b1p/P1PP1B1P/4R3/1P2PPP1/RN2KBN1 b Qq a3 0 10"
     );
     expect(
-      generatePawnAttacks(Squares.b5, "b", position)
+      position
+        .generatePawnAttacks(Squares.b5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -225,7 +217,8 @@ describe("Position", () => {
       "rn2kbn1/p1p1ppp1/2r1q3/1p1Q1b1p/2PP1B1P/4R3/PP2PPP1/RN2KBN1 b Qq c3 0 9"
     );
     expect(
-      generatePawnAttacks(Squares.c4, "w", position)
+      position
+        .generatePawnAttacks(Squares.c4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -237,7 +230,8 @@ describe("Position", () => {
       "rn2kbn1/ppp1ppp1/2r1q3/3Q1b1p/3P1B1P/4R3/PPP1PPP1/RN2KBN1 b Qq - 0 8"
     );
     expect(
-      generateQueenMoves(Squares.d5, position)
+      position
+        .generateQueenMoves(Squares.d5)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -249,7 +243,8 @@ describe("Position", () => {
       "rn1qkbn1/ppp1ppp1/2r5/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 w Qq - 4 6"
     );
     expect(
-      generateRookMoves(Squares.c6, position)
+      position
+        .generateRookMoves(Squares.c6)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -261,7 +256,8 @@ describe("Position", () => {
       "rn1qkbn1/ppp1ppp1/7r/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 b Qq - 3 5"
     );
     expect(
-      generateRookMoves(Squares.e3, position)
+      position
+        .generateRookMoves(Squares.e3)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -273,7 +269,8 @@ describe("Position", () => {
       "rn1qkbnr/ppp1pppp/8/3p1b2/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq - 2 3"
     );
     expect(
-      generateBishopMoves(Squares.f5, position)
+      position
+        .generateBishopMoves(Squares.f5)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -285,7 +282,8 @@ describe("Position", () => {
       "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2"
     );
     expect(
-      generateBishopMoves(Squares.f4, position)
+      position
+        .generateBishopMoves(Squares.f4)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -296,7 +294,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
-    expect(generateBishopMoves(Squares.a8, position)).toEqual([]);
+    expect(position.generateBishopMoves(Squares.a8)).toEqual([]);
   });
 
   it("generates bishop moves that stop at a collision", () => {
@@ -304,7 +302,8 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
     expect(
-      generateBishopMoves(Squares.a7, position)
+      position
+        .generateBishopMoves(Squares.a7)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -312,26 +311,19 @@ describe("Position", () => {
   });
 
   it("doesn't generate black pawn moves that result in collisions", () => {
-    expect(
-      generatePawnMoves(
-        Squares.h3,
-        "b",
-        new PositionImpl(
-          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-        )
-      )
-    ).toEqual([]);
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
+    expect(position.generatePawnMoves(Squares.h3, "b")).toEqual([]);
   });
 
   it("doesn't generate white pawn moves that result in collisions", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
     expect(
-      generatePawnMoves(
-        Squares.a5,
-        "b",
-        new PositionImpl(
-          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-        )
-      )
+      position
+        .generatePawnMoves(Squares.a5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -339,14 +331,12 @@ describe("Position", () => {
   });
 
   it("generates single and double push black pawn moves", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
     expect(
-      generatePawnMoves(
-        Squares.h7,
-        "b",
-        new PositionImpl(
-          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-        )
-      )
+      position
+        .generatePawnMoves(Squares.h7, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -354,14 +344,12 @@ describe("Position", () => {
   });
 
   it("generates single and double push white pawn moves", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+    );
     expect(
-      generatePawnMoves(
-        Squares.a2,
-        "w",
-        new PositionImpl(
-          "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
-        )
-      )
+      position
+        .generatePawnMoves(Squares.a2, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -373,7 +361,8 @@ describe("Position", () => {
       "rnk2bn1/p1p1ppp1/3rq3/1p1Q1b1p/PKPP1B1P/4R3/1P2PPP1/RN3BN1 w - - 11 16"
     );
     expect(
-      generateKingMoves(Squares.b4, position)
+      position
+        .generateKingMoves(Squares.b4)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -385,7 +374,8 @@ describe("Position", () => {
       "rn1k1bn1/p1p1ppp1/3rq3/1pKQ1b1p/P1PP1B1P/4R3/1P2PPP1/RN3BN1 w - - 13 17"
     );
     expect(
-      generateKingMoves(Squares.c5, position)
+      position
+        .generateKingMoves(Squares.c5)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -397,7 +387,8 @@ describe("Position", () => {
       "r2k1bn1/p1p1ppp1/3rq3/1pKQNb1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 0 19"
     );
     expect(
-      generateKnightMoves(Squares.e5, position)
+      position
+        .generateKnightMoves(Squares.e5)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -409,7 +400,8 @@ describe("Position", () => {
       "r3kbn1/p1p1ppp1/2Nrq3/1pKQ1b1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 2 20"
     );
     expect(
-      generateKnightMoves(Squares.c6, position)
+      position
+        .generateKnightMoves(Squares.c6)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -423,7 +415,8 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
     expect(
-      generateKnightMoves(Squares.g1, position)
+      position
+        .generateKnightMoves(Squares.g1)
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -431,31 +424,21 @@ describe("Position", () => {
   });
 
   it("gets least significant bit", () => {
-    expect(getLS1B(BigInt(0b00111001010000000)).toString(2)).toEqual(
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    );
+    expect(position.getLS1B(BigInt(0b00111001010000000)).toString(2)).toEqual(
       Squares.a1.toString(2)
     );
   });
 
   it("gets least significant bit", () => {
-    expect(getLS1B(BigInt(0b00111001010110000)).toString(2)).toEqual(
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    );
+    expect(position.getLS1B(BigInt(0b00111001010110000)).toString(2)).toEqual(
       Squares.d1.toString(2)
     );
-  });
-
-  it("sets a bit", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .set(BigInt(0), Squares.b1)
-        .toString(2)
-    ).toEqual(Squares.b1.toString(2));
-  });
-
-  it("removes a bit", () => {
-    expect(
-      new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1")
-        .remove(Squares.b1, Squares.b1)
-        .toString(2)
-    ).toEqual("0");
   });
 
   it("transforms board to bitboard", () => {
