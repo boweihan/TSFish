@@ -17,18 +17,22 @@ import {
 import {
   Color,
   DefaultFEN,
-  Masks,
-  Max64BitInt,
   MoveType,
   Pieces,
-  Rank2,
-  Rank7,
-  Squares,
   SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import { prettyPrint } from "../util/prettyPrint";
+import {
+  generateBishopMoves,
+  generateKingMoves,
+  generateKnightMoves,
+  generateMoves,
+  generatePawnAttacks,
+  generateQueenMoves,
+  generateRookMoves,
+} from "../util/moves";
 
 type State = {
   activeColor: PlayerColor;
@@ -43,6 +47,12 @@ export interface Position {
   state: State;
 
   perft: (depth: number) => number;
+  isCollision: (bitboard: BitBoard) => bigint;
+  isCapture: (from: BitBoard, to: BitBoard) => bigint;
+  isCheck: (color: PlayerColor) => boolean;
+  isAttacked: (square: BitBoard, color: PlayerColor) => boolean;
+  makeMove: (move: Move) => void;
+  undoMove: () => void;
 }
 
 export class PositionImpl implements Position {
@@ -299,62 +309,12 @@ export class PositionImpl implements Position {
     }
   }
 
-  generateMoves() {
-    let moves: Move[] = [];
-
-    const generateMovesForPiece = (
-      board: bigint,
-      callback: (...args: any[]) => Move[]
-    ) => {
-      while (board) {
-        const ls1b = this.getLS1B(board);
-        moves = moves.concat(callback(ls1b));
-        board ^= ls1b; // remove ls1b from board
-      }
-    };
-
-    const partialRight = (fn: Function, ...presetArgs: any[]) =>
-      function partiallyApplied(...laterArgs: any[]) {
-        return fn(...laterArgs, ...presetArgs);
-      };
-
-    const color = this.state.activeColor;
-
-    generateMovesForPiece(
-      this.board[color].pawn,
-      partialRight(this.generatePawnMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].pawn,
-      partialRight(this.generatePawnAttacks, color)
-    );
-    generateMovesForPiece(this.board[color].knight, this.generateKnightMoves);
-    generateMovesForPiece(this.board[color].bishop, this.generateBishopMoves);
-    generateMovesForPiece(this.board[color].rook, this.generateRookMoves);
-    generateMovesForPiece(this.board[color].queen, this.generateQueenMoves);
-    generateMovesForPiece(this.board[color].king, this.generateKingMoves);
-
-    //  strip illegal moves (not performant)
-    moves = moves.filter((move) => {
-      this.makeMove(move);
-      const isLegal = !this.isCheck(color);
-      this.undoMove();
-      return isLegal;
-    });
-
-    if (moves.length === 0) {
-      // checkmate
-    }
-
-    return moves;
-  }
-
   perft(depth: number, move?: string, startingDepth: number = depth) {
     if (depth === 0) {
       return 1;
     }
 
-    const moves = this.generateMoves();
+    const moves = generateMoves(this);
 
     // console.log(
     //   moves.map(
@@ -390,18 +350,11 @@ export class PositionImpl implements Position {
     return nodes;
   }
 
-  getLS1B(board: bigint) {
-    // intersection of binary number and it's twos complement isolates the LS1B
-    // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
-    // javascript represents negative numbers as the twos complement
-    return board & -board;
-  }
-
-  private isCollision(to: bigint) {
+  isCollision(to: bigint) {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
-  private isCapture(from: bigint, to: bigint) {
+  isCapture(from: bigint, to: bigint) {
     if (this.board.w.piece & from) {
       return this.board.b.piece & to && this.isCollision(to);
     }
@@ -410,274 +363,8 @@ export class PositionImpl implements Position {
       return this.board.w.piece & to && this.isCollision(to);
     }
 
-    return false;
+    return BigInt(0);
   }
-
-  generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
-    const moves = [];
-
-    switch (color) {
-      case "w":
-        // single push
-        const singlePushW = from << BigInt(8);
-
-        if (
-          singlePushW & Max64BitInt && // 64 bits
-          !this.isCollision(singlePushW)
-        ) {
-          moves.push({
-            from,
-            to: singlePushW,
-            kind: MoveType.QUIET,
-          }); // ensure pawn pushes don't go off the board for white
-        }
-
-        // double push
-        const doublePushW = from << BigInt(16);
-
-        if (
-          from & Rank2 && // rank2
-          doublePushW & Max64BitInt && // 64 bits
-          !this.isCollision(singlePushW) &&
-          !this.isCollision(doublePushW)
-        ) {
-          moves.push({
-            from,
-            to: doublePushW,
-            kind: MoveType.DOUBLE_PAWN_PUSH,
-          });
-        }
-        // promotion
-        break;
-      case "b":
-        // single push
-        const singlePushB = from >> BigInt(8);
-
-        if (!this.isCollision(singlePushB)) {
-          moves.push({
-            from,
-            to: singlePushB,
-            kind: MoveType.QUIET,
-          });
-        }
-
-        // double push
-        const doublePushB = from >> BigInt(16);
-
-        if (
-          from & Rank7 && // rank 7
-          !this.isCollision(singlePushB) &&
-          !this.isCollision(doublePushB)
-        ) {
-          moves.push({
-            from,
-            to: doublePushB,
-            kind: MoveType.DOUBLE_PAWN_PUSH,
-          });
-        }
-        // promotion
-        break;
-      default:
-        throw new Error("invalid player color!");
-    }
-
-    return moves;
-  };
-
-  private generatePawnAttack = (from: bigint, to: bigint, mask: bigint) => {
-    const attacks = [];
-
-    const enPassantTarget = Squares[this.state.enPassantTarget];
-
-    if (to & Max64BitInt & mask && this.isCapture(from, to)) {
-      attacks.push({
-        from,
-        to,
-        kind: MoveType.CAPTURE,
-      });
-    }
-
-    if (enPassantTarget && to & enPassantTarget & mask) {
-      attacks.push({
-        from,
-        to,
-        kind: MoveType.EN_PASSANT,
-      });
-    }
-
-    return attacks;
-  };
-
-  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
-    let attacks: Move[] = [];
-
-    switch (color) {
-      case "w":
-        attacks = attacks.concat(
-          this.generatePawnAttack(from, from << BigInt(7), Masks.NOT_H_FILE)
-        );
-        attacks = attacks.concat(
-          this.generatePawnAttack(from, from << BigInt(9), Masks.NOT_A_FILE)
-        );
-        break;
-      case "b":
-        attacks = attacks.concat(
-          this.generatePawnAttack(from, from >> BigInt(7), Masks.NOT_A_FILE)
-        );
-        attacks = attacks.concat(
-          this.generatePawnAttack(from, from >> BigInt(9), Masks.NOT_H_FILE)
-        );
-        break;
-      default:
-        throw new Error("invalid player color!");
-    }
-
-    return attacks;
-  };
-
-  generateKnightMoves = (from: bigint): Move[] => {
-    return [
-      (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
-      (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
-      (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
-      (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
-      (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
-      (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
-      (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
-      (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
-    ]
-      .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
-      .map((to) => ({
-        from,
-        to,
-        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
-      }));
-  };
-
-  private generateRayMoves = (
-    from: bigint,
-    direction: (from: bigint) => bigint
-  ): Move[] => {
-    const moves = [];
-
-    let ray = from;
-
-    while (ray) {
-      ray = direction(ray);
-
-      if (ray) {
-        const collided = this.isCollision(ray);
-
-        if (collided && !this.isCapture(from, ray)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: ray,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    return moves;
-  };
-
-  generateBishopMoves = (from: bigint): Move[] => {
-    return this.generateRayMoves(from, (ray) => {
-      ray <<= BigInt(7);
-      ray &= Max64BitInt;
-      ray &= Masks.NOT_H_FILE;
-
-      return ray;
-    })
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray <<= BigInt(9);
-          ray &= Max64BitInt;
-          ray &= Masks.NOT_A_FILE;
-
-          return ray;
-        })
-      )
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(7);
-          ray &= Masks.NOT_A_FILE;
-
-          return ray;
-        })
-      )
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(9);
-          ray &= Masks.NOT_H_FILE;
-
-          return ray;
-        })
-      );
-  };
-
-  generateRookMoves = (from: bigint): Move[] => {
-    return this.generateRayMoves(from, (ray) => {
-      ray <<= BigInt(8);
-      ray &= Max64BitInt;
-
-      return ray;
-    })
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(8);
-
-          return ray;
-        })
-      )
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray <<= BigInt(1);
-          ray &= Masks.NOT_A_FILE;
-
-          return ray;
-        })
-      )
-      .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(1);
-          ray &= Masks.NOT_H_FILE;
-
-          return ray;
-        })
-      );
-  };
-
-  generateQueenMoves = (from: bigint): Move[] => {
-    return this.generateBishopMoves(from)
-      .concat(this.generateRookMoves(from))
-      .map((move) => ({
-        ...move,
-      }));
-  };
-
-  generateKingMoves = (from: bigint): Move[] => {
-    return [
-      (from << BigInt(8)) & Max64BitInt, // no
-      (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
-      (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
-      (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
-      from >> BigInt(8), // so
-      (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
-      (from << BigInt(1)) & Masks.NOT_A_FILE, // we
-      (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
-    ]
-      .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
-      .map((to) => ({
-        from,
-        to,
-        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
-      }));
-  };
 
   set(board: bigint, square: bigint): bigint {
     return (board |= square);
@@ -725,7 +412,7 @@ export class PositionImpl implements Position {
     // generating attacks for pieces can effectively create masks for each piece type
 
     // check if opponent's pawns are attacking
-    const pawnAttacks = this.generatePawnAttacks(square, color).reduce(
+    const pawnAttacks = generatePawnAttacks(square, color, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -733,7 +420,7 @@ export class PositionImpl implements Position {
     if (pawnAttacks & opponentBoard.pawn) return true;
 
     // check if opponent's knights are attacking
-    const knightAttacks = this.generateKnightMoves(square).reduce(
+    const knightAttacks = generateKnightMoves(square, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -741,7 +428,7 @@ export class PositionImpl implements Position {
     if (knightAttacks & opponentBoard.knight) return true;
 
     // check if opponent's bishops are attacking
-    const bishopAttacks = this.generateBishopMoves(square).reduce(
+    const bishopAttacks = generateBishopMoves(square, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -749,7 +436,7 @@ export class PositionImpl implements Position {
     if (bishopAttacks & opponentBoard.bishop) return true;
 
     // check if opponent's rooks are attacking
-    const rookAttacks = this.generateRookMoves(square).reduce(
+    const rookAttacks = generateRookMoves(square, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -757,7 +444,7 @@ export class PositionImpl implements Position {
     if (rookAttacks & opponentBoard.rook) return true;
 
     // check if opponent's queens are attacking
-    const queenAttacks = this.generateQueenMoves(square).reduce(
+    const queenAttacks = generateQueenMoves(square, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -765,7 +452,7 @@ export class PositionImpl implements Position {
     if (queenAttacks & opponentBoard.queen) return true;
 
     // check if opponent's king is attacking
-    const kingAttacks = this.generateKingMoves(square).reduce(
+    const kingAttacks = generateKingMoves(square, this).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
