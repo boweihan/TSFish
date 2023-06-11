@@ -21,11 +21,17 @@ export default class UCIEngine {
         this.position = new PositionImpl();
         break;
       case EngineInput.POSITION:
-        let fen = tokens.slice(1).join(" ");
-        if (tokens[1] === EngineInput.STARTPOS) {
-          fen = DefaultFEN;
+        const args = tokens.slice(1);
+        const mode = args[0];
+
+        if (mode === "fen") {
+          const fen = args.slice(1).join(" ");
+          this.position = new PositionImpl(fen);
+        } else if (mode === "startpos") {
+          this.position = new PositionImpl(DefaultFEN);
+        } else {
+          console.log("Unknown Engine Position Mode.");
         }
-        this.position = new PositionImpl(fen);
         break;
       case EngineInput.GO:
         break;
