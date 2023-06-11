@@ -180,6 +180,20 @@ export class PositionImpl implements Position {
     // handle capture
     move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
+    // handle promotions
+    (move.kind === MoveType.KNIGHT_PROMOTION ||
+      move.kind === MoveType.BISHOP_PROMOTION ||
+      move.kind === MoveType.ROOK_PROMOTION ||
+      move.kind === MoveType.QUEEN_PROMOTION) &&
+      this.makePromotionMove(move);
+
+    // handle promotion captures
+    (move.kind === MoveType.KNIGHT_PROMO_CAPTURE ||
+      move.kind === MoveType.BISHOP_PROMO_CAPTURE ||
+      move.kind === MoveType.ROOK_PROMO_CAPTURE ||
+      move.kind === MoveType.QUEEN_PROMO_CAPTURE) &&
+      this.makePromotionCapture(move);
+
     // update board state
     this.updateActiveColor();
 
@@ -205,25 +219,52 @@ export class PositionImpl implements Position {
     return piece;
   }
 
+  private determinePromotionPiece(move: Move): Piece {
+    const { kind } = move;
+
+    switch (kind) {
+      case MoveType.KNIGHT_PROMOTION:
+      case MoveType.KNIGHT_PROMO_CAPTURE:
+        return Pieces.KNIGHT;
+      case MoveType.BISHOP_PROMOTION:
+      case MoveType.BISHOP_PROMO_CAPTURE:
+        return Pieces.BISHOP;
+      case MoveType.ROOK_PROMOTION:
+      case MoveType.ROOK_PROMO_CAPTURE:
+        return Pieces.ROOK;
+      case MoveType.QUEEN_PROMOTION:
+      case MoveType.QUEEN_PROMO_CAPTURE:
+        return Pieces.QUEEN;
+      default:
+        throw new Error(`Invalid promotion move type: ${kind}`);
+    }
+  }
+
   private updateBitboards(
     color: PlayerColor,
     piece: Piece,
     from: BitBoard,
-    to?: BitBoard
+    to?: BitBoard,
+    promotion?: Piece
   ) {
     // update piece bitboard
     this.board[color][piece] = this.remove(this.board[color][piece], from);
 
     if (to) {
-      // if to is null, it's a capture
-      this.board[color][piece] = this.set(this.board[color][piece], to);
+      if (promotion) {
+        this.board[color][promotion] = this.set(
+          this.board[color][promotion],
+          to
+        );
+      } else {
+        this.board[color][piece] = this.set(this.board[color][piece], to);
+      }
     }
 
     // update pieces bitboard
     this.board[color].piece = this.remove(this.board[color].piece, from);
 
     if (to) {
-      // if to is null, it's a capture
       this.board[color].piece = this.set(this.board[color].piece, to);
     }
   }
@@ -296,6 +337,38 @@ export class PositionImpl implements Position {
     this.resetHalfMoveClock();
   }
 
+  private makePromotionMove(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+
+    const promoPiece = this.determinePromotionPiece(move);
+
+    // update half move clock
+    this.resetHalfMoveClock();
+
+    this.updateBitboards(color, Pieces.PAWN, from, to, promoPiece);
+  }
+
+  private makePromotionCapture(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.piece & from ? "w" : "b";
+    const oppositeColor = color === "w" ? "b" : "w";
+
+    const promoPiece = this.determinePromotionPiece(move);
+    const capturedPiece = this.determinePiece(to);
+
+    // update half move clock
+    this.resetHalfMoveClock();
+
+    // update moving piece bitboard
+    this.updateBitboards(color, Pieces.PAWN, from, to, promoPiece);
+
+    // update opponent's piece bitboard
+    this.updateBitboards(oppositeColor, capturedPiece, to);
+  }
+
   undoMove() {
     // retrieve move from board history
     const entry = this.history.pop();
@@ -327,6 +400,8 @@ export class PositionImpl implements Position {
 
     if (depth === 1) {
       const nodes = moves.length;
+
+      // console.log(`${move}: ${nodes}, kind: ${moves[0].kind}`);
 
       return nodes;
     }

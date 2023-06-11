@@ -2,8 +2,10 @@ import {
   Masks,
   Max64BitInt,
   MoveType,
+  Rank1,
   Rank2,
   Rank7,
+  Rank8,
   Squares,
 } from "../constants";
 import { Move } from "../datatypes/move";
@@ -98,11 +100,16 @@ export const generatePawnMoves = (
         singlePushW & Max64BitInt && // 64 bits
         !position.isCollision(singlePushW)
       ) {
-        moves.push({
-          from,
-          to: singlePushW,
-          kind: MoveType.QUIET,
-        }); // ensure pawn pushes don't go off the board for white
+        const promotions = generatePromotions(from, singlePushW, color);
+        if (promotions.length > 0) {
+          moves.push(...promotions);
+        } else {
+          moves.push({
+            from,
+            to: singlePushW,
+            kind: MoveType.QUIET,
+          }); // ensure pawn pushes don't go off the board for white
+        }
       }
 
       // double push
@@ -127,11 +134,17 @@ export const generatePawnMoves = (
       const singlePushB = from >> BigInt(8);
 
       if (!position.isCollision(singlePushB)) {
-        moves.push({
-          from,
-          to: singlePushB,
-          kind: MoveType.QUIET,
-        });
+        const promotions = generatePromotions(from, singlePushB, color);
+
+        if (promotions.length > 0) {
+          moves.push(...promotions);
+        } else {
+          moves.push({
+            from,
+            to: singlePushB,
+            kind: MoveType.QUIET,
+          }); // ensure pawn pushes don't go off the board for white
+        }
       }
 
       // double push
@@ -157,10 +170,79 @@ export const generatePawnMoves = (
   return moves;
 };
 
+export const generatePromotions = (
+  from: bigint,
+  to: bigint,
+  color: PlayerColor
+) => {
+  const promotions = [];
+
+  if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
+    // black or white promotion
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.KNIGHT_PROMOTION,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.BISHOP_PROMOTION,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.ROOK_PROMOTION,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.QUEEN_PROMOTION,
+    });
+  }
+
+  return promotions;
+};
+
+export const generateCapturePromotions = (
+  from: bigint,
+  to: bigint,
+  color: PlayerColor
+) => {
+  const promotions = [];
+
+  if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
+    // black or white promotion
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.KNIGHT_PROMO_CAPTURE,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.BISHOP_PROMO_CAPTURE,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.ROOK_PROMO_CAPTURE,
+    });
+    promotions.push({
+      from,
+      to,
+      kind: MoveType.QUEEN_PROMO_CAPTURE,
+    });
+  }
+
+  return promotions;
+};
+
 const generatePawnAttack = (
   from: bigint,
   to: bigint,
   mask: bigint,
+  color: PlayerColor,
   position: Position
 ) => {
   const attacks = [];
@@ -168,11 +250,17 @@ const generatePawnAttack = (
   const enPassantTarget = Squares[position.state.enPassantTarget];
 
   if (to & Max64BitInt & mask && position.isCapture(from, to)) {
-    attacks.push({
-      from,
-      to,
-      kind: MoveType.CAPTURE,
-    });
+    const promotions = generateCapturePromotions(from, to, color);
+
+    if (promotions.length > 0) {
+      attacks.push(...promotions);
+    } else {
+      attacks.push({
+        from,
+        to,
+        kind: MoveType.CAPTURE,
+      });
+    }
   }
 
   if (enPassantTarget && to & enPassantTarget & mask) {
@@ -196,18 +284,42 @@ export const generatePawnAttacks = (
   switch (color) {
     case "w":
       attacks = attacks.concat(
-        generatePawnAttack(from, from << BigInt(7), Masks.NOT_H_FILE, position)
+        generatePawnAttack(
+          from,
+          from << BigInt(7),
+          Masks.NOT_H_FILE,
+          color,
+          position
+        )
       );
       attacks = attacks.concat(
-        generatePawnAttack(from, from << BigInt(9), Masks.NOT_A_FILE, position)
+        generatePawnAttack(
+          from,
+          from << BigInt(9),
+          Masks.NOT_A_FILE,
+          color,
+          position
+        )
       );
       break;
     case "b":
       attacks = attacks.concat(
-        generatePawnAttack(from, from >> BigInt(7), Masks.NOT_A_FILE, position)
+        generatePawnAttack(
+          from,
+          from >> BigInt(7),
+          Masks.NOT_A_FILE,
+          color,
+          position
+        )
       );
       attacks = attacks.concat(
-        generatePawnAttack(from, from >> BigInt(9), Masks.NOT_H_FILE, position)
+        generatePawnAttack(
+          from,
+          from >> BigInt(9),
+          Masks.NOT_H_FILE,
+          color,
+          position
+        )
       );
       break;
     default:

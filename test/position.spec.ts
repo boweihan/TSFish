@@ -24,6 +24,29 @@ import { prettyPrint } from "../src/util/prettyPrint";
 // );
 
 describe("Position", () => {
+  it("generates pawn attack promotions", () => {
+    const position = new PositionImpl(
+      "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
+    );
+    const wMoves = generatePawnAttacks(Squares.e7, Color.WHITE, position);
+    expect(wMoves.length).toEqual(8);
+
+    const bMoves = generatePawnAttacks(Squares.e2, Color.BLACK, position);
+    expect(bMoves.length).toEqual(8);
+  });
+
+  it("generates pawn push promotions", () => {
+    const position = new PositionImpl(
+      "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
+    );
+
+    const wMoves = generatePawnMoves(Squares.e7, Color.WHITE, position);
+    expect(wMoves.length).toEqual(4);
+
+    const bMoves = generatePawnMoves(Squares.e2, Color.BLACK, position);
+    expect(bMoves.length).toEqual(4);
+  });
+
   it("correctly checks if a piece is under attack", () => {
     const position = new PositionImpl(
       "r2q1bnr/p1ppk1pp/bNn2p2/1p2p3/3P2Q1/4P3/PPP2PPP/R1B1KBNR b KQ - 5 7"
