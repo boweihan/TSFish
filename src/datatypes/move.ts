@@ -9,3 +9,5 @@ export type Move = {
   to: BitBoard;
   kind: MoveKind;
 };
+
+export type CastlingRight = "K" | "Q" | "k" | "q";

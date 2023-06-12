@@ -15,6 +15,7 @@ import {
   BitBoard,
 } from "../datatypes/bitboard";
 import {
+  Castling,
   Color,
   DefaultFEN,
   Masks,
@@ -30,6 +31,7 @@ import {
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
+import { prettyPrint } from "../util/prettyPrint";
 
 type State = {
   activeColor: PlayerColor;
@@ -115,11 +117,38 @@ export class PositionImpl implements Position {
     return board;
   };
 
+  serializeCastlingRights = (castling: string) => {
+    const serialized: CastlingRights = {
+      K: false,
+      Q: false,
+      k: false,
+      q: false,
+    };
+
+    if (castling.includes(Castling.WHITE_KING_SIDE)) {
+      serialized.K = true;
+    }
+
+    if (castling.includes(Castling.WHITE_QUEEN_SIDE)) {
+      serialized.Q = true;
+    }
+
+    if (castling.includes(Castling.BLACK_KING_SIDE)) {
+      serialized.k = true;
+    }
+
+    if (castling.includes(Castling.BLACK_QUEEN_SIDE)) {
+      serialized.q = true;
+    }
+
+    return serialized;
+  };
+
   fenToState(fen: string): State {
     if (fen === "startpos") {
       return {
         activeColor: "w",
-        castlingRights: "KQkq",
+        castlingRights: this.serializeCastlingRights("KQkq"),
         enPassantTarget: "-",
         halfMoveClock: 0,
         fullMoveNumber: 1,
@@ -143,7 +172,7 @@ export class PositionImpl implements Position {
 
     return {
       activeColor,
-      castlingRights,
+      castlingRights: this.serializeCastlingRights(castlingRights),
       enPassantTarget,
       halfMoveClock: parseInt(halfMoveClock),
       fullMoveNumber: parseInt(fullMoveNumber),
@@ -186,6 +215,11 @@ export class PositionImpl implements Position {
       move.kind === MoveType.ROOK_PROMO_CAPTURE ||
       move.kind === MoveType.QUEEN_PROMO_CAPTURE) &&
       this.makePromotionCapture(move);
+
+    // handle castling moves
+    (move.kind === MoveType.KING_CASTLE ||
+      move.kind === MoveType.QUEEN_CASTLE) &&
+      this.makeCastlingMove(move);
 
     // update board state
     this.updateActiveColor();
@@ -269,6 +303,11 @@ export class PositionImpl implements Position {
 
     const piece = this.determinePiece(from);
 
+    // check if castling rights should be updated
+    if (piece === Pieces.KING || piece === Pieces.ROOK) {
+      this.updateCastlingRights(color, from, piece);
+    }
+
     // update half move clock
     if (piece !== Pieces.PAWN) {
       this.updateHalfMoveClock();
@@ -288,6 +327,11 @@ export class PositionImpl implements Position {
     // check which color is moving
     const color = this.board.w.piece & from ? "w" : "b";
     const oppositeColor = color === "w" ? "b" : "w";
+
+    // check if castling rights should be updated
+    if (piece === Pieces.KING || piece === Pieces.ROOK) {
+      this.updateCastlingRights(color, from, piece);
+    }
 
     // update half move clock
     this.resetHalfMoveClock();
@@ -362,6 +406,32 @@ export class PositionImpl implements Position {
     this.updateBitboards(oppositeColor, capturedPiece, to);
   }
 
+  makeCastlingMove(move: Move) {
+    const { from, to } = move;
+
+    const color = this.board.w.king & from ? "w" : "b";
+
+    // update half move clock
+    this.updateHalfMoveClock();
+
+    // update king bitboard
+    this.updateBitboards(color, Pieces.KING, from, to);
+
+    // update rook bitboard
+    if (to === Squares.g1) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.h1, Squares.f1);
+    } else if (to === Squares.b1) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.a1, Squares.c1);
+    } else if (to === Squares.g8) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.h8, Squares.f8);
+    } else if (to === Squares.b8) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.a8, Squares.c8);
+    }
+
+    // update castling rights
+    this.updateCastlingRights(color, from, Pieces.KING);
+  }
+
   undoMove() {
     // retrieve move from board history
     const entry = this.history.pop();
@@ -418,27 +488,27 @@ export class PositionImpl implements Position {
     return nodes;
   }
 
-  isCollision(to: bigint) {
+  isCollision(to: BitBoard) {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
-  isCapture(from: bigint, to: bigint) {
-    if (this.board.w.piece & from) {
-      return this.board.b.piece & to && this.isCollision(to);
+  isCapture(to: BitBoard, color: PlayerColor) {
+    if (color === Color.WHITE) {
+      return this.board.b.piece & to;
     }
 
-    if (this.board.b.piece & from) {
-      return this.board.w.piece & to && this.isCollision(to);
+    if (color === Color.BLACK) {
+      return this.board.w.piece & to;
     }
 
     return BigInt(0);
   }
 
-  set(board: bigint, square: bigint): bigint {
+  set(board: BitBoard, square: BitBoard): BitBoard {
     return (board |= square);
   }
 
-  remove(board: bigint, square: bigint): bigint {
+  remove(board: BitBoard, square: BitBoard): BitBoard {
     return (board &= ~square);
   }
 
@@ -446,8 +516,30 @@ export class PositionImpl implements Position {
     this.state.enPassantTarget = target;
   }
 
-  updateCastlingRights() {
-    // TODO: implement
+  updateCastlingRights(color: PlayerColor, from: BitBoard, piece: Piece) {
+    if (piece === Pieces.KING) {
+      if (color === Color.WHITE) {
+        this.state.castlingRights[Castling.WHITE_KING_SIDE] = false;
+        this.state.castlingRights[Castling.WHITE_QUEEN_SIDE] = false;
+      } else {
+        this.state.castlingRights[Castling.BLACK_KING_SIDE] = false;
+        this.state.castlingRights[Castling.BLACK_QUEEN_SIDE] = false;
+      }
+    } else if (piece === Pieces.ROOK) {
+      if (color === Color.WHITE) {
+        if (from === Squares.a1) {
+          this.state.castlingRights[Castling.WHITE_QUEEN_SIDE] = false;
+        } else if (from === Squares.h1) {
+          this.state.castlingRights[Castling.WHITE_KING_SIDE] = false;
+        }
+      } else {
+        if (from === Squares.a8) {
+          this.state.castlingRights[Castling.BLACK_QUEEN_SIDE] = false;
+        } else if (from === Squares.h8) {
+          this.state.castlingRights[Castling.BLACK_KING_SIDE] = false;
+        }
+      }
+    }
   }
 
   updateActiveColor() {
@@ -469,7 +561,11 @@ export class PositionImpl implements Position {
     }
   }
 
-  isAttacked(square: bigint, color: PlayerColor) {
+  isAttacked(
+    square: BitBoard,
+    color: PlayerColor,
+    isCastling: boolean = false
+  ) {
     const opponentColor = color === Color.WHITE ? Color.BLACK : Color.WHITE;
     const opponentBoard = this.board[opponentColor];
 
@@ -484,7 +580,7 @@ export class PositionImpl implements Position {
     if (pawnAttacks & opponentBoard.pawn) return true;
 
     // check if opponent's knights are attacking
-    const knightAttacks = this.generateKnightMoves(square).reduce(
+    const knightAttacks = this.generateKnightMoves(square, color).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -492,7 +588,7 @@ export class PositionImpl implements Position {
     if (knightAttacks & opponentBoard.knight) return true;
 
     // check if opponent's bishops are attacking
-    const bishopAttacks = this.generateBishopMoves(square).reduce(
+    const bishopAttacks = this.generateBishopMoves(square, color).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -500,7 +596,7 @@ export class PositionImpl implements Position {
     if (bishopAttacks & opponentBoard.bishop) return true;
 
     // check if opponent's rooks are attacking
-    const rookAttacks = this.generateRookMoves(square).reduce(
+    const rookAttacks = this.generateRookMoves(square, color).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -508,7 +604,7 @@ export class PositionImpl implements Position {
     if (rookAttacks & opponentBoard.rook) return true;
 
     // check if opponent's queens are attacking
-    const queenAttacks = this.generateQueenMoves(square).reduce(
+    const queenAttacks = this.generateQueenMoves(square, color).reduce(
       (a, b) => a | b.to,
       BigInt(0)
     );
@@ -516,10 +612,11 @@ export class PositionImpl implements Position {
     if (queenAttacks & opponentBoard.queen) return true;
 
     // check if opponent's king is attacking
-    const kingAttacks = this.generateKingMoves(square).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
+    const kingAttacks = this.generateKingMoves(
+      square,
+      color,
+      isCastling
+    ).reduce((a, b) => a | b.to, BigInt(0));
 
     if (kingAttacks & opponentBoard.king) return true;
 
@@ -567,7 +664,7 @@ export class PositionImpl implements Position {
     let moves: Move[] = [];
 
     const generateMovesForPiece = (
-      board: bigint,
+      board: BitBoard,
       callback: (...args: any[]) => Move[]
     ) => {
       while (board) {
@@ -592,11 +689,26 @@ export class PositionImpl implements Position {
       this.board[color].pawn,
       partialRight(this.generatePawnAttacks, color)
     );
-    generateMovesForPiece(this.board[color].knight, this.generateKnightMoves);
-    generateMovesForPiece(this.board[color].bishop, this.generateBishopMoves);
-    generateMovesForPiece(this.board[color].rook, this.generateRookMoves);
-    generateMovesForPiece(this.board[color].queen, this.generateQueenMoves);
-    generateMovesForPiece(this.board[color].king, this.generateKingMoves);
+    generateMovesForPiece(
+      this.board[color].knight,
+      partialRight(this.generateKnightMoves, color)
+    );
+    generateMovesForPiece(
+      this.board[color].bishop,
+      partialRight(this.generateBishopMoves, color)
+    );
+    generateMovesForPiece(
+      this.board[color].rook,
+      partialRight(this.generateRookMoves, color)
+    );
+    generateMovesForPiece(
+      this.board[color].queen,
+      partialRight(this.generateQueenMoves, color)
+    );
+    generateMovesForPiece(
+      this.board[color].king,
+      partialRight(this.generateKingMoves, color)
+    );
 
     //  strip illegal moves (not performant)
     moves = moves.filter((move) => {
@@ -613,14 +725,14 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  getLS1B = (board: bigint) => {
+  getLS1B = (board: BitBoard) => {
     // intersection of binary number and it's twos complement isolates the LS1B
     // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
     // javascript represents negative numbers as the twos complement
     return board & -board;
   };
 
-  generatePawnMoves = (from: bigint, color: PlayerColor): Move[] => {
+  generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] => {
     const moves = [];
 
     switch (color) {
@@ -702,7 +814,7 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  generatePromotions = (from: bigint, to: bigint, color: PlayerColor) => {
+  generatePromotions = (from: BitBoard, to: BitBoard, color: PlayerColor) => {
     const promotions = [];
 
     if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
@@ -733,8 +845,8 @@ export class PositionImpl implements Position {
   };
 
   generateCapturePromotions = (
-    from: bigint,
-    to: bigint,
+    from: BitBoard,
+    to: BitBoard,
     color: PlayerColor
   ) => {
     const promotions = [];
@@ -767,16 +879,16 @@ export class PositionImpl implements Position {
   };
 
   generatePawnAttack = (
-    from: bigint,
-    to: bigint,
-    mask: bigint,
+    from: BitBoard,
+    to: BitBoard,
+    mask: BitBoard,
     color: PlayerColor
   ) => {
     const attacks = [];
 
     const enPassantTarget = Squares[this.state.enPassantTarget];
 
-    if (to & Max64BitInt & mask && this.isCapture(from, to)) {
+    if (to & Max64BitInt & mask && this.isCapture(to, color)) {
       const promotions = this.generateCapturePromotions(from, to, color);
 
       if (promotions.length > 0) {
@@ -801,7 +913,7 @@ export class PositionImpl implements Position {
     return attacks;
   };
 
-  generatePawnAttacks = (from: bigint, color: PlayerColor): Move[] => {
+  generatePawnAttacks = (from: BitBoard, color: PlayerColor): Move[] => {
     let attacks: Move[] = [];
 
     switch (color) {
@@ -848,7 +960,7 @@ export class PositionImpl implements Position {
     return attacks;
   };
 
-  generateKnightMoves = (from: bigint): Move[] => {
+  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] => {
     return [
       (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
       (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
@@ -860,17 +972,18 @@ export class PositionImpl implements Position {
       (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
     ]
       .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
+      .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
       .map((to) => ({
         from,
         to,
-        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
+        kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
       }));
   };
 
   generateRayMoves = (
-    from: bigint,
-    direction: (from: bigint) => bigint
+    from: BitBoard,
+    direction: (from: BitBoard) => BitBoard,
+    color: PlayerColor
   ): Move[] => {
     const moves = [];
 
@@ -882,7 +995,7 @@ export class PositionImpl implements Position {
       if (ray) {
         const collided = this.isCollision(ray);
 
-        if (collided && !this.isCapture(from, ray)) break; // hit own piece
+        if (collided && !this.isCapture(ray, color)) break; // hit own piece
 
         moves.push({
           from,
@@ -897,83 +1010,177 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  generateBishopMoves = (from: bigint): Move[] => {
-    return this.generateRayMoves(from, (ray) => {
-      ray <<= BigInt(7);
-      ray &= Max64BitInt;
-      ray &= Masks.NOT_H_FILE;
+  generateBishopMoves = (from: BitBoard, color: PlayerColor): Move[] => {
+    return this.generateRayMoves(
+      from,
+      (ray) => {
+        ray <<= BigInt(7);
+        ray &= Max64BitInt;
+        ray &= Masks.NOT_H_FILE;
 
-      return ray;
-    })
+        return ray;
+      },
+      color
+    )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray <<= BigInt(9);
-          ray &= Max64BitInt;
-          ray &= Masks.NOT_A_FILE;
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray <<= BigInt(9);
+            ray &= Max64BitInt;
+            ray &= Masks.NOT_A_FILE;
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(7);
-          ray &= Masks.NOT_A_FILE;
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray >>= BigInt(7);
+            ray &= Masks.NOT_A_FILE;
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(9);
-          ray &= Masks.NOT_H_FILE;
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray >>= BigInt(9);
+            ray &= Masks.NOT_H_FILE;
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       );
   };
 
-  generateRookMoves = (from: bigint): Move[] => {
-    return this.generateRayMoves(from, (ray) => {
-      ray <<= BigInt(8);
-      ray &= Max64BitInt;
+  generateRookMoves = (from: BitBoard, color: PlayerColor): Move[] => {
+    return this.generateRayMoves(
+      from,
+      (ray) => {
+        ray <<= BigInt(8);
+        ray &= Max64BitInt;
 
-      return ray;
-    })
+        return ray;
+      },
+      color
+    )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(8);
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray >>= BigInt(8);
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray <<= BigInt(1);
-          ray &= Masks.NOT_A_FILE;
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray <<= BigInt(1);
+            ray &= Masks.NOT_A_FILE;
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       )
       .concat(
-        this.generateRayMoves(from, (ray) => {
-          ray >>= BigInt(1);
-          ray &= Masks.NOT_H_FILE;
+        this.generateRayMoves(
+          from,
+          (ray) => {
+            ray >>= BigInt(1);
+            ray &= Masks.NOT_H_FILE;
 
-          return ray;
-        })
+            return ray;
+          },
+          color
+        )
       );
   };
 
-  generateQueenMoves = (from: bigint): Move[] => {
-    return this.generateBishopMoves(from)
-      .concat(this.generateRookMoves(from))
+  generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] => {
+    return this.generateBishopMoves(from, color)
+      .concat(this.generateRookMoves(from, color))
       .map((move) => ({
         ...move,
       }));
   };
 
-  generateKingMoves = (from: bigint): Move[] => {
-    return [
+  generateCastlingMoves = (color: PlayerColor): Move[] => {
+    const castlingMoves: Move[] = [];
+
+    const generateKingCastle = (from: BitBoard, color: PlayerColor) => {
+      if (
+        !this.isCollision(from >> BigInt(1)) &&
+        !this.isCollision(from >> BigInt(2)) &&
+        !this.isAttacked(from, color, true) &&
+        !this.isAttacked(from >> BigInt(1), color, true)
+      ) {
+        return {
+          from,
+          to: from >> BigInt(2),
+          kind: MoveType.KING_CASTLE,
+        };
+      }
+    };
+
+    const generateQueenCastle = (from: BitBoard, color: PlayerColor) => {
+      if (
+        !this.isCollision(from << BigInt(1)) &&
+        !this.isCollision(from << BigInt(2)) &&
+        !this.isCollision(from << BigInt(3)) &&
+        !this.isAttacked(from, color, true) &&
+        !this.isAttacked(from << BigInt(1), color, true) &&
+        !this.isAttacked(from << BigInt(2), color, true)
+      ) {
+        return {
+          from,
+          to: from << BigInt(3),
+          kind: MoveType.QUEEN_CASTLE,
+        };
+      }
+    };
+
+    if (color === "w") {
+      if (this.state.castlingRights[Castling.WHITE_KING_SIDE]) {
+        const kingCastle = generateKingCastle(this.board.w.king, color);
+        if (kingCastle) castlingMoves.push(kingCastle);
+      }
+      if (this.state.castlingRights[Castling.WHITE_QUEEN_SIDE]) {
+        const queenCastle = generateQueenCastle(this.board.w.king, color);
+        if (queenCastle) castlingMoves.push(queenCastle);
+      }
+    } else if (color === "b") {
+      if (this.state.castlingRights[Castling.BLACK_KING_SIDE]) {
+        const kingCastle = generateKingCastle(this.board.b.king, color);
+        if (kingCastle) castlingMoves.push(kingCastle);
+      }
+      if (this.state.castlingRights[Castling.BLACK_QUEEN_SIDE]) {
+        const queenCastle = generateQueenCastle(this.board.b.king, color);
+        if (queenCastle) castlingMoves.push(queenCastle);
+      }
+    }
+
+    return castlingMoves;
+  };
+
+  generateKingMoves = (
+    from: BitBoard,
+    color: PlayerColor,
+    isCastling: boolean = false
+  ): Move[] => {
+    const moves = [
       (from << BigInt(8)) & Max64BitInt, // no
       (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
       (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
@@ -984,11 +1191,13 @@ export class PositionImpl implements Position {
       (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
     ]
       .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(from, to))
+      .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
       .map((to) => ({
         from,
         to,
-        kind: this.isCapture(from, to) ? MoveType.CAPTURE : MoveType.QUIET,
+        kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
       }));
+
+    return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
   };
 }

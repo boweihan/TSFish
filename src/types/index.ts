@@ -1,8 +1,10 @@
+import { CastlingRight } from "../datatypes/move";
+
 export * from "./predicates";
 
 export type PlayerColor = "w" | "b";
 
-export type CastlingRights = string;
+export type CastlingRights = { [key in CastlingRight]: boolean };
 
 export type EnPassantTarget = string;
 

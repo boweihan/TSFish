@@ -14,6 +14,76 @@ import { prettyPrint } from "../src/util/prettyPrint";
 // );
 
 describe("Position", () => {
+  it("castles the white rook", () => {
+    const position = new PositionImpl(
+      "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12"
+    );
+    const moves = position.generateKingMoves(Squares.e1, "w");
+    expect(
+      moves.filter(
+        (move) =>
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+      ).length
+    ).toEqual(1);
+  });
+
+  it("doesn't allow castling through check", () => {
+    const position = new PositionImpl(
+      "r3k2r/4pp1p/Bpnq1n1b/p1Pp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R b Kkq - 1 12"
+    );
+    const moves = position.generateKingMoves(Squares.e8, "b");
+    expect(
+      moves.filter(
+        (move) =>
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+      ).length
+    ).toEqual(1);
+  });
+
+  it("generates castling moves", () => {
+    const position = new PositionImpl(
+      "r4rk1/p2qpp1p/1pn2npb/1BPp4/4P1b1/N1P2P2/PPQBN1PP/1R2K2R w K - 1 11"
+    );
+    const moves = position.generateKingMoves(Squares.e1, "w");
+    expect(
+      moves.filter(
+        (move) =>
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+      ).length
+    ).toEqual(1);
+  });
+
+  it("generates castling moves", () => {
+    const position = new PositionImpl(
+      "r4rk1/pp1qpp1p/2n2npb/1BPp4/4P1b1/2P2P2/PPQBN1PP/RN2K2R w KQ - 6 10"
+    );
+    const moves = position.generateKingMoves(Squares.e1, "w");
+    expect(
+      moves.filter(
+        (move) =>
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+      ).length
+    ).toEqual(1);
+  });
+
+  it("generates castling moves", () => {
+    const position = new PositionImpl(
+      "r3k2r/pp1qpp1p/2n2npb/1BPp4/4P1b1/2P2P2/PPQBN1PP/RN2K2R b KQkq - 5 9"
+    );
+    const moves = position.generateKingMoves(Squares.e8, "b");
+    expect(
+      moves.filter(
+        (move) =>
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+      ).length
+    ).toEqual(2);
+  });
+
   it("generates pawn attack promotions", () => {
     const position = new PositionImpl(
       "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
@@ -227,11 +297,11 @@ describe("Position", () => {
 
   it("generates queen moves", () => {
     const position = new PositionImpl(
-      "rn2kbn1/ppp1ppp1/2r1q3/3Q1b1p/3P1B1P/4R3/PPP1PPP1/RN2KBN1 b Qq - 0 8"
+      "rn2kbn1/ppp1pp2/2r1q1p1/3Q1b1p/3P1B1P/4R3/PPP1PPP1/RN2KBN1 w Qq - 0 9"
     );
     expect(
       position
-        .generateQueenMoves(Squares.d5)
+        .generateQueenMoves(Squares.d5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -240,11 +310,11 @@ describe("Position", () => {
 
   it("generates black rook moves and attacks on white pieces", () => {
     const position = new PositionImpl(
-      "rn1qkbn1/ppp1ppp1/2r5/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 w Qq - 4 6"
+      "rn1qkbn1/ppp1ppp1/2r5/3p1bBp/3P3P/4R3/PPP1PPP1/RN1QKBN1 b Qq - 5 6"
     );
     expect(
       position
-        .generateRookMoves(Squares.c6)
+        .generateRookMoves(Squares.c6, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -253,11 +323,11 @@ describe("Position", () => {
 
   it("generates white rook moves and attacks on black pieces", () => {
     const position = new PositionImpl(
-      "rn1qkbn1/ppp1ppp1/7r/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 b Qq - 3 5"
+      "rn1qkbn1/ppp1ppp1/6r1/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 w Qq - 4 6"
     );
     expect(
       position
-        .generateRookMoves(Squares.e3)
+        .generateRookMoves(Squares.e3, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -266,11 +336,11 @@ describe("Position", () => {
 
   it("generates black bishop attacks on white pieces", () => {
     const position = new PositionImpl(
-      "rn1qkbnr/ppp1pppp/8/3p1b2/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq - 2 3"
+      "rn1qkbnr/ppp1pppp/8/3p1bB1/3P4/8/PPP1PPPP/RN1QKBNR b KQkq - 3 3"
     );
     expect(
       position
-        .generateBishopMoves(Squares.f5)
+        .generateBishopMoves(Squares.f5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -279,11 +349,11 @@ describe("Position", () => {
 
   it("generate white bishop attacks on black pieces", () => {
     const position = new PositionImpl(
-      "rnbqkbnr/ppp1pppp/8/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR b KQkq - 1 2"
+      "rnbqkbnr/ppp1pp1p/6p1/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq - 0 3"
     );
     expect(
       position
-        .generateBishopMoves(Squares.f4)
+        .generateBishopMoves(Squares.f4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -292,22 +362,22 @@ describe("Position", () => {
 
   it("generates no bishop moves if contained by own pieces", () => {
     const position = new PositionImpl(
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
-    expect(position.generateBishopMoves(Squares.a8)).toEqual([]);
+    expect(position.generateBishopMoves(Squares.c1, "w")).toEqual([]);
   });
 
   it("generates bishop moves that stop at a collision", () => {
     const position = new PositionImpl(
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
+      "rnbqk1nr/bppp1ppp/p3p3/P7/8/4PP2/1PPP2PP/RNBQKBNR b KQkq - 0 5"
     );
     expect(
       position
-        .generateBishopMoves(Squares.a7)
+        .generateBishopMoves(Squares.a7, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
-    ).toEqual("10000000010000000010000000010000000010000000000");
+    ).toEqual("10000000010000000010000000010000000000000000000");
   });
 
   it("doesn't generate black pawn moves that result in collisions", () => {
@@ -362,7 +432,7 @@ describe("Position", () => {
     );
     expect(
       position
-        .generateKingMoves(Squares.b4)
+        .generateKingMoves(Squares.b4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -375,7 +445,7 @@ describe("Position", () => {
     );
     expect(
       position
-        .generateKingMoves(Squares.c5)
+        .generateKingMoves(Squares.c5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -388,7 +458,7 @@ describe("Position", () => {
     );
     expect(
       position
-        .generateKnightMoves(Squares.e5)
+        .generateKnightMoves(Squares.e5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -401,7 +471,7 @@ describe("Position", () => {
     );
     expect(
       position
-        .generateKnightMoves(Squares.c6)
+        .generateKnightMoves(Squares.c6, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -416,7 +486,7 @@ describe("Position", () => {
     );
     expect(
       position
-        .generateKnightMoves(Squares.g1)
+        .generateKnightMoves(Squares.g1, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
         .toString(2)
@@ -463,7 +533,12 @@ describe("Position", () => {
         .state
     ).toEqual({
       activeColor: "b",
-      castlingRights: "-",
+      castlingRights: {
+        K: false,
+        Q: false,
+        k: false,
+        q: false,
+      },
       enPassantTarget: "-",
       halfMoveClock: 0,
       fullMoveNumber: 1,
@@ -475,7 +550,12 @@ describe("Position", () => {
       new PositionImpl("8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50").state
     ).toEqual({
       activeColor: "b",
-      castlingRights: "-",
+      castlingRights: {
+        K: false,
+        Q: false,
+        k: false,
+        q: false,
+      },
       enPassantTarget: "-",
       halfMoveClock: 99,
       fullMoveNumber: 50,
@@ -489,7 +569,12 @@ describe("Position", () => {
       ).state
     ).toEqual({
       activeColor: "b",
-      castlingRights: "KQkq",
+      castlingRights: {
+        K: true,
+        Q: true,
+        k: true,
+        q: true,
+      },
       enPassantTarget: "e3",
       halfMoveClock: 0,
       fullMoveNumber: 1,

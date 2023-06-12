@@ -1,4 +1,4 @@
-import type { Piece } from "../datatypes/move";
+import type { CastlingRight, Piece } from "../datatypes/move";
 import { PlayerColor } from "../types";
 
 export const EngineInput = {
@@ -277,3 +277,10 @@ export const Rank2 = BigInt("65280");
 export const Rank7 = BigInt("71776119061217280");
 export const Rank8 = BigInt("18374686479671623680");
 export const Rank1 = BigInt("255");
+
+export const Castling: { [key: string]: CastlingRight } = {
+  WHITE_KING_SIDE: "K",
+  WHITE_QUEEN_SIDE: "Q",
+  BLACK_KING_SIDE: "k",
+  BLACK_QUEEN_SIDE: "q",
+};
