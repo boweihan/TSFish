@@ -99,6 +99,8 @@ export default class UCIEngine {
         }
 
         // start calculating
+        console.log(`bestmove ${this.position.search()}`);
+
         break;
       case EngineInput.STOP:
         console.log(`bestmove ${this.position.search()}`);
