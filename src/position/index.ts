@@ -49,7 +49,8 @@ export interface Position {
   makeMove: (move: Move) => void;
   undoMove: () => void;
   parseUCIMove: (move: string) => Move;
-  toFen: () => string;
+  positionToFen: () => string;
+  search: () => string;
 }
 
 export class PositionImpl implements Position {
@@ -63,6 +64,41 @@ export class PositionImpl implements Position {
     this.state = this.fenToState(fen);
     this.history = [];
   }
+
+  search = (): string => {
+    const legalMoves = this.generateMoves();
+
+    const randomMove =
+      legalMoves[Math.floor(Math.random() * legalMoves.length)];
+
+    const move = `${SquaresReverse[randomMove.from.toString(2)]}${
+      SquaresReverse[randomMove.to.toString(2)]
+    }`;
+
+    if (
+      randomMove.kind === MoveType.QUEEN_PROMOTION ||
+      randomMove.kind === MoveType.QUEEN_PROMO_CAPTURE
+    ) {
+      return `${move}q`;
+    } else if (
+      randomMove.kind === MoveType.ROOK_PROMOTION ||
+      randomMove.kind === MoveType.ROOK_PROMO_CAPTURE
+    ) {
+      return `${move}r`;
+    } else if (
+      randomMove.kind === MoveType.BISHOP_PROMOTION ||
+      randomMove.kind === MoveType.BISHOP_PROMO_CAPTURE
+    ) {
+      return `${move}b`;
+    } else if (
+      randomMove.kind === MoveType.KNIGHT_PROMOTION ||
+      randomMove.kind === MoveType.KNIGHT_PROMO_CAPTURE
+    ) {
+      return `${move}n`;
+    }
+
+    return move;
+  };
 
   parseUCIMove = (move: string): Move => {
     const from = Squares[move.slice(0, 2)];
@@ -170,59 +206,6 @@ export class PositionImpl implements Position {
     return board;
   };
 
-  stringifyCastlingRights = (castling: CastlingRights): string => {
-    let serialized = "";
-
-    if (castling.K) {
-      serialized += Castling.WHITE_KING_SIDE;
-    }
-
-    if (castling.Q) {
-      serialized += Castling.WHITE_QUEEN_SIDE;
-    }
-
-    if (castling.k) {
-      serialized += Castling.BLACK_KING_SIDE;
-    }
-
-    if (castling.q) {
-      serialized += Castling.BLACK_QUEEN_SIDE;
-    }
-
-    if (!serialized.length) {
-      serialized = "-";
-    }
-
-    return serialized;
-  };
-
-  serializeCastlingRights = (castling: string) => {
-    const serialized: CastlingRights = {
-      K: false,
-      Q: false,
-      k: false,
-      q: false,
-    };
-
-    if (castling.includes(Castling.WHITE_KING_SIDE)) {
-      serialized.K = true;
-    }
-
-    if (castling.includes(Castling.WHITE_QUEEN_SIDE)) {
-      serialized.Q = true;
-    }
-
-    if (castling.includes(Castling.BLACK_KING_SIDE)) {
-      serialized.k = true;
-    }
-
-    if (castling.includes(Castling.BLACK_QUEEN_SIDE)) {
-      serialized.q = true;
-    }
-
-    return serialized;
-  };
-
   fenToState(fen: string): State {
     if (fen === "startpos") {
       return {
@@ -258,7 +241,7 @@ export class PositionImpl implements Position {
     };
   }
 
-  toFen() {
+  positionToFen() {
     // generate fen based on board
     let fen = "";
 
@@ -353,6 +336,59 @@ export class PositionImpl implements Position {
 
     return fen;
   }
+
+  stringifyCastlingRights = (castling: CastlingRights): string => {
+    let serialized = "";
+
+    if (castling.K) {
+      serialized += Castling.WHITE_KING_SIDE;
+    }
+
+    if (castling.Q) {
+      serialized += Castling.WHITE_QUEEN_SIDE;
+    }
+
+    if (castling.k) {
+      serialized += Castling.BLACK_KING_SIDE;
+    }
+
+    if (castling.q) {
+      serialized += Castling.BLACK_QUEEN_SIDE;
+    }
+
+    if (!serialized.length) {
+      serialized = "-";
+    }
+
+    return serialized;
+  };
+
+  serializeCastlingRights = (castling: string) => {
+    const serialized: CastlingRights = {
+      K: false,
+      Q: false,
+      k: false,
+      q: false,
+    };
+
+    if (castling.includes(Castling.WHITE_KING_SIDE)) {
+      serialized.K = true;
+    }
+
+    if (castling.includes(Castling.WHITE_QUEEN_SIDE)) {
+      serialized.Q = true;
+    }
+
+    if (castling.includes(Castling.BLACK_KING_SIDE)) {
+      serialized.k = true;
+    }
+
+    if (castling.includes(Castling.BLACK_QUEEN_SIDE)) {
+      serialized.q = true;
+    }
+
+    return serialized;
+  };
 
   makeMove(move: Move) {
     // put board in board history (for undo)

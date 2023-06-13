@@ -13,6 +13,7 @@ export default class UCIEngine {
     // https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
     // UCI commands are space delimited
     const tokens = line.split(" ");
+    const args = tokens.slice(1);
 
     switch (tokens[0]) {
       case EngineInput.SETOPTION:
@@ -22,7 +23,6 @@ export default class UCIEngine {
         this.position = new PositionImpl();
         break;
       case EngineInput.POSITION:
-        const args = tokens.slice(1);
         const mode = args[0];
 
         if (mode === "fen") {
@@ -47,22 +47,64 @@ export default class UCIEngine {
 
         break;
       case EngineInput.GO:
-        break;
-      case EngineInput.PERFT:
-        let depth = parseInt(tokens[1]);
+        const commands = args;
 
-        if (isNaN(depth)) {
-          depth = 1;
+        if (commands[0] === EngineInput.PERFT) {
+          let depth = parseInt(args[1]);
+
+          if (isNaN(depth)) {
+            depth = 1;
+          }
+
+          const start = performance.now();
+
+          const nodes = this.position.perft(depth);
+
+          const end = performance.now();
+          const time = end - start;
+
+          console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+          return;
         }
 
-        const start = performance.now();
+        for (let i = 0; i < commands.length; i++) {
+          const command = commands[i];
 
-        const nodes = this.position.perft(depth);
+          // https://backscattering.de/chess/uci/
+          if (command === "wtime") {
+            // do something
+          } else if (command === "btime") {
+            // do something
+          } else if (command === "winc") {
+            // do something
+          } else if (command === "binc") {
+            // do something
+          } else if (command === "movestogo") {
+            // do something
+          } else if (command === "depth") {
+            // do something
+          } else if (command === "nodes") {
+            // do something
+          } else if (command === "mate") {
+            // do something
+          } else if (command === "movetime") {
+            // do something
+          } else if (command === "infinite") {
+            // do something
+          } else if (command === "ponder") {
+            // do something
+          } else if (command === "searchmoves") {
+            // do something
+          }
+        }
 
-        const end = performance.now();
-        const time = end - start;
-
-        console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+        // start calculating
+        break;
+      case EngineInput.STOP:
+        console.log(`bestmove ${this.position.search()}`);
+        break;
+      case EngineInput.PONDERHIT:
+        // not implemented
         break;
       default:
         // send to engine thread

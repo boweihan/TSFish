@@ -42,12 +42,6 @@ export default class UCIController {
       case EngineInput.REGISTER:
         // not implemented
         break;
-      case EngineInput.STOP:
-        // not implemented
-        break;
-      case EngineInput.PONDERHIT:
-        // not implemented
-        break;
       case EngineInput.QUIT:
         this.worker.terminate();
         process.exit(0);

@@ -22,7 +22,7 @@ describe("Position", () => {
     position.makeMove(position.parseUCIMove("h8f8"));
     position.makeMove(position.parseUCIMove("e5d6"));
     position.makeMove(position.parseUCIMove("d5d4"));
-    expect(position.toFen()).toEqual(
+    expect(position.positionToFen()).toEqual(
       "r3kr2/4pp1p/1pnP1n1b/pBP3p1/3p2b1/N1PQBP2/PP2N1PP/1R2K2R w Kq - 0 14"
     );
   });
@@ -31,12 +31,12 @@ describe("Position", () => {
     const fen =
       "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12";
     const position = new PositionImpl(fen);
-    expect(position.toFen()).toEqual(fen);
+    expect(position.positionToFen()).toEqual(fen);
   });
 
   it("spits out the right default FEN", () => {
     const position = new PositionImpl();
-    expect(position.toFen()).toEqual(DefaultFEN);
+    expect(position.positionToFen()).toEqual(DefaultFEN);
   });
 
   it("castles the white rook", () => {
