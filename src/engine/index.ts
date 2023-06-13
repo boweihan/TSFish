@@ -1,4 +1,5 @@
-import { DefaultFEN, EngineInput } from "../constants";
+import { EngineInput, MoveType, Squares } from "../constants";
+import { Move } from "../datatypes/move";
 import { Position, PositionImpl } from "../position";
 
 export default class UCIEngine {
@@ -28,10 +29,17 @@ export default class UCIEngine {
           const fen = args.slice(1).join(" ");
           this.position = new PositionImpl(fen);
         } else if (mode === "startpos") {
-          this.position = new PositionImpl(DefaultFEN);
+          this.position = new PositionImpl();
         } else {
           console.log("Unknown Engine Position Mode.");
         }
+
+        const moves = args.slice(2);
+
+        // moves.forEach((move) => {
+        //   this.position.makeMove(move);
+        // });
+
         break;
       case EngineInput.GO:
         break;

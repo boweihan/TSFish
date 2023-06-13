@@ -49,7 +49,6 @@ export default class UCIController {
         // not implemented
         break;
       case EngineInput.QUIT:
-        console.log("Exiting...");
         this.worker.terminate();
         process.exit(0);
       default:

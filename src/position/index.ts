@@ -62,6 +62,48 @@ export class PositionImpl implements Position {
     this.history = [];
   }
 
+  parseUCIMove = (move: string): Move => {
+    const from = Squares[move.slice(0, 2)];
+    const to = Squares[move.slice(2, 4)];
+
+    const color = from & this.board.w.piece ? Color.WHITE : Color.BLACK;
+    const capture = this.isCapture(to, color);
+
+    let moveType = capture ? MoveType.CAPTURE : MoveType.QUIET;
+
+    // handle promotion
+    if (move.length === 5) {
+      const promotion = move[4];
+
+      if (promotion === "n") {
+        moveType = capture
+          ? MoveType.KNIGHT_PROMO_CAPTURE
+          : MoveType.KNIGHT_PROMOTION;
+      } else if (promotion === "b") {
+        moveType = capture
+          ? MoveType.BISHOP_PROMO_CAPTURE
+          : MoveType.BISHOP_PROMOTION;
+      } else if (promotion === "r") {
+        moveType = capture
+          ? MoveType.ROOK_PROMO_CAPTURE
+          : MoveType.ROOK_PROMOTION;
+      } else if (promotion === "q") {
+        moveType = capture
+          ? MoveType.QUEEN_PROMO_CAPTURE
+          : MoveType.QUEEN_PROMOTION;
+      }
+    }
+
+    // handle castle
+    if (move === "e1g1" || move === "e8g8") {
+      moveType = MoveType.KING_CASTLE;
+    } else if (move === "e1c1" || move === "e8c8") {
+      moveType = MoveType.QUEEN_CASTLE;
+    }
+
+    return { from, to, kind: moveType };
+  };
+
   fenToBoard = (fen: string): ClassicalBoards => {
     const piece = fen.split(" ")[0];
     const ranks = piece.split("/");
@@ -420,12 +462,12 @@ export class PositionImpl implements Position {
     // update rook bitboard
     if (to === Squares.g1) {
       this.updateBitboards(color, Pieces.ROOK, Squares.h1, Squares.f1);
-    } else if (to === Squares.b1) {
-      this.updateBitboards(color, Pieces.ROOK, Squares.a1, Squares.c1);
+    } else if (to === Squares.c1) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.a1, Squares.d1);
     } else if (to === Squares.g8) {
       this.updateBitboards(color, Pieces.ROOK, Squares.h8, Squares.f8);
-    } else if (to === Squares.b8) {
-      this.updateBitboards(color, Pieces.ROOK, Squares.a8, Squares.c8);
+    } else if (to === Squares.c8) {
+      this.updateBitboards(color, Pieces.ROOK, Squares.a8, Squares.d8);
     }
 
     // update castling rights
@@ -1125,7 +1167,8 @@ export class PositionImpl implements Position {
         !this.isCollision(from >> BigInt(1)) &&
         !this.isCollision(from >> BigInt(2)) &&
         !this.isAttacked(from, color, true) &&
-        !this.isAttacked(from >> BigInt(1), color, true)
+        !this.isAttacked(from >> BigInt(1), color, true) &&
+        !this.isAttacked(from >> BigInt(2), color, true)
       ) {
         return {
           from,
@@ -1146,7 +1189,7 @@ export class PositionImpl implements Position {
       ) {
         return {
           from,
-          to: from << BigInt(3),
+          to: from << BigInt(2),
           kind: MoveType.QUEEN_CASTLE,
         };
       }
