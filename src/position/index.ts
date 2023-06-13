@@ -48,6 +48,8 @@ export interface Position {
   perft: (depth: number) => number;
   makeMove: (move: Move) => void;
   undoMove: () => void;
+  parseUCIMove: (move: string) => Move;
+  toFen: () => string;
 }
 
 export class PositionImpl implements Position {
@@ -99,6 +101,15 @@ export class PositionImpl implements Position {
       moveType = MoveType.KING_CASTLE;
     } else if (move === "e1c1" || move === "e8c8") {
       moveType = MoveType.QUEEN_CASTLE;
+    }
+
+    // handle enpassant capture
+    if (
+      moveType === MoveType.CAPTURE &&
+      this.determinePiece(from) === Pieces.PAWN &&
+      Squares[this.state.enPassantTarget] === to
+    ) {
+      moveType = MoveType.EN_PASSANT;
     }
 
     return { from, to, kind: moveType };
@@ -157,6 +168,32 @@ export class PositionImpl implements Position {
     });
 
     return board;
+  };
+
+  stringifyCastlingRights = (castling: CastlingRights): string => {
+    let serialized = "";
+
+    if (castling.K) {
+      serialized += Castling.WHITE_KING_SIDE;
+    }
+
+    if (castling.Q) {
+      serialized += Castling.WHITE_QUEEN_SIDE;
+    }
+
+    if (castling.k) {
+      serialized += Castling.BLACK_KING_SIDE;
+    }
+
+    if (castling.q) {
+      serialized += Castling.BLACK_QUEEN_SIDE;
+    }
+
+    if (!serialized.length) {
+      serialized = "-";
+    }
+
+    return serialized;
   };
 
   serializeCastlingRights = (castling: string) => {
@@ -222,7 +259,99 @@ export class PositionImpl implements Position {
   }
 
   toFen() {
-    // TODO: implement
+    // generate fen based on board
+    let fen = "";
+
+    // generate piece placement
+    const whitePieces = this.board.w.piece.toString(2).padStart(64, "0");
+    const blackPieces = this.board.b.piece.toString(2).padStart(64, "0");
+
+    let rankFens = [];
+
+    for (let rank = 0; rank < 8; rank++) {
+      let rankFen = "";
+      let pad = 0;
+
+      for (let file = 0; file < 8; file++) {
+        const position = rank * 8 + file;
+        const whitePiece = whitePieces[position];
+        const blackPiece = blackPieces[position];
+
+        if (whitePiece === "1") {
+          const piece = this.determinePiece(BigInt(1) << BigInt(63 - position));
+
+          if (pad > 0) {
+            rankFen += pad.toString();
+            pad = 0;
+          }
+
+          if (piece === Pieces.PAWN) {
+            rankFen += "P";
+          } else if (piece === Pieces.ROOK) {
+            rankFen += "R";
+          } else if (piece === Pieces.KNIGHT) {
+            rankFen += "N";
+          } else if (piece === Pieces.BISHOP) {
+            rankFen += "B";
+          } else if (piece === Pieces.QUEEN) {
+            rankFen += "Q";
+          } else if (piece === Pieces.KING) {
+            rankFen += "K";
+          }
+        } else if (blackPiece === "1") {
+          const piece = this.determinePiece(BigInt(1) << BigInt(63 - position));
+
+          if (pad > 0) {
+            rankFen += pad.toString();
+            pad = 0;
+          }
+
+          if (piece === Pieces.PAWN) {
+            rankFen += "p";
+          } else if (piece === Pieces.ROOK) {
+            rankFen += "r";
+          } else if (piece === Pieces.KNIGHT) {
+            rankFen += "n";
+          } else if (piece === Pieces.BISHOP) {
+            rankFen += "b";
+          } else if (piece === Pieces.QUEEN) {
+            rankFen += "q";
+          } else if (piece === Pieces.KING) {
+            rankFen += "k";
+          }
+        } else {
+          pad++;
+        }
+
+        if (file === 7) {
+          if (pad > 0) {
+            rankFen += pad.toString();
+            pad = 0;
+          }
+        }
+      }
+
+      rankFens.push(rankFen);
+    }
+
+    fen += rankFens.join("/");
+
+    // generate active color
+    fen += ` ${this.state.activeColor}`;
+
+    // generate castling rights
+    fen += ` ${this.stringifyCastlingRights(this.state.castlingRights)}`;
+
+    // generate enpassant target
+    fen += ` ${this.state.enPassantTarget}`;
+
+    // generate half move clock
+    fen += ` ${this.state.halfMoveClock}`;
+
+    // generate full move number
+    fen += ` ${this.state.fullMoveNumber}`;
+
+    return fen;
   }
 
   makeMove(move: Move) {

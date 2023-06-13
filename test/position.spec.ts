@@ -1,4 +1,4 @@
-import { Color, MoveType } from "../src/constants";
+import { Color, DefaultFEN, MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
@@ -14,6 +14,31 @@ import { prettyPrint } from "../src/util/prettyPrint";
 // );
 
 describe("Position", () => {
+  it("spits out the right FEN", () => {
+    const fen =
+      "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12";
+    const position = new PositionImpl(fen);
+    position.makeMove(position.parseUCIMove("e4e5"));
+    position.makeMove(position.parseUCIMove("h8f8"));
+    position.makeMove(position.parseUCIMove("e5d6"));
+    position.makeMove(position.parseUCIMove("d5d4"));
+    expect(position.toFen()).toEqual(
+      "r3kr2/4pp1p/1pnP1n1b/pBP3p1/3p2b1/N1PQBP2/PP2N1PP/1R2K2R w Kq - 0 14"
+    );
+  });
+
+  it("spits out the right FEN", () => {
+    const fen =
+      "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12";
+    const position = new PositionImpl(fen);
+    expect(position.toFen()).toEqual(fen);
+  });
+
+  it("spits out the right default FEN", () => {
+    const position = new PositionImpl();
+    expect(position.toFen()).toEqual(DefaultFEN);
+  });
+
   it("castles the white rook", () => {
     const position = new PositionImpl(
       "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12"

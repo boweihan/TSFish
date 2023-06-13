@@ -34,11 +34,16 @@ export default class UCIEngine {
           console.log("Unknown Engine Position Mode.");
         }
 
-        const moves = args.slice(2);
+        const moves = line
+          .split("moves ")[1]
+          ?.split(" ")
+          .filter((move) => {
+            return move !== "";
+          });
 
-        // moves.forEach((move) => {
-        //   this.position.makeMove(move);
-        // });
+        moves?.forEach((move) => {
+          this.position.makeMove(this.position.parseUCIMove(move));
+        });
 
         break;
       case EngineInput.GO:

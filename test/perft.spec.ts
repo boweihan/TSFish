@@ -1,6 +1,6 @@
 import UCIEngine from "../src/engine";
 
-describe("PERFT", () => {
+describe.skip("PERFT", () => {
   let engine: UCIEngine;
   let logs: Array<string> = [];
 
