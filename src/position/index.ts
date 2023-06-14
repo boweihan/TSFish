@@ -31,7 +31,6 @@ import {
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
-import { prettyPrint } from "../util/prettyPrint";
 
 type State = {
   activeColor: PlayerColor;
@@ -66,38 +65,109 @@ export class PositionImpl implements Position {
   }
 
   search = (): string => {
-    const legalMoves = this.generateMoves();
+    const bestMove = this.alphaBetaRootNode(3);
 
-    const randomMove =
-      legalMoves[Math.floor(Math.random() * legalMoves.length)];
+    if (!bestMove) {
+      throw new Error("No move found");
+    }
 
-    const move = `${SquaresReverse[randomMove.from.toString(2)]}${
-      SquaresReverse[randomMove.to.toString(2)]
+    const move = `${SquaresReverse[bestMove.from.toString(2)]}${
+      SquaresReverse[bestMove.to.toString(2)]
     }`;
 
     if (
-      randomMove.kind === MoveType.QUEEN_PROMOTION ||
-      randomMove.kind === MoveType.QUEEN_PROMO_CAPTURE
+      bestMove.kind === MoveType.QUEEN_PROMOTION ||
+      bestMove.kind === MoveType.QUEEN_PROMO_CAPTURE
     ) {
       return `${move}q`;
     } else if (
-      randomMove.kind === MoveType.ROOK_PROMOTION ||
-      randomMove.kind === MoveType.ROOK_PROMO_CAPTURE
+      bestMove.kind === MoveType.ROOK_PROMOTION ||
+      bestMove.kind === MoveType.ROOK_PROMO_CAPTURE
     ) {
       return `${move}r`;
     } else if (
-      randomMove.kind === MoveType.BISHOP_PROMOTION ||
-      randomMove.kind === MoveType.BISHOP_PROMO_CAPTURE
+      bestMove.kind === MoveType.BISHOP_PROMOTION ||
+      bestMove.kind === MoveType.BISHOP_PROMO_CAPTURE
     ) {
       return `${move}b`;
     } else if (
-      randomMove.kind === MoveType.KNIGHT_PROMOTION ||
-      randomMove.kind === MoveType.KNIGHT_PROMO_CAPTURE
+      bestMove.kind === MoveType.KNIGHT_PROMOTION ||
+      bestMove.kind === MoveType.KNIGHT_PROMO_CAPTURE
     ) {
       return `${move}n`;
     }
 
     return move;
+  };
+
+  alphaBetaRootNode = (depth: number): Move | undefined => {
+    let bestScore = -Infinity;
+    let bestMove: Move | undefined = undefined;
+
+    for (const move of this.generateMoves()) {
+      this.makeMove(move);
+      const value = -this.alphaBeta(-Infinity, Infinity, depth - 1);
+      this.undoMove();
+      if (value >= bestScore) {
+        bestScore = value;
+        bestMove = move;
+      }
+    }
+
+    return bestMove;
+  };
+
+  alphaBeta = (alpha: number, beta: number, depthleft: number): number => {
+    if (depthleft === 0) return this.evaluate();
+
+    for (const move of this.generateMoves()) {
+      this.makeMove(move);
+      const score = -this.alphaBeta(-beta, -alpha, depthleft - 1);
+      this.undoMove();
+      if (score >= beta) return beta;
+      if (score > alpha) alpha = score;
+    }
+
+    return alpha;
+  };
+
+  evaluate = (): number => {
+    let score = 0;
+
+    const whitePieces = this.board.w.piece;
+    const blackPieces = this.board.b.piece;
+
+    // material
+    score += this.countBits(whitePieces & this.board.w.pawn) * 100;
+    score += this.countBits(whitePieces & this.board.w.knight) * 320;
+    score += this.countBits(whitePieces & this.board.w.bishop) * 330;
+    score += this.countBits(whitePieces & this.board.w.rook) * 500;
+    score += this.countBits(whitePieces & this.board.w.queen) * 900;
+    score += this.countBits(whitePieces & this.board.w.king) * 20000;
+
+    score -= this.countBits(blackPieces & this.board.b.pawn) * 100;
+    score -= this.countBits(blackPieces & this.board.b.knight) * 320;
+    score -= this.countBits(blackPieces & this.board.b.bishop) * 330;
+    score -= this.countBits(blackPieces & this.board.b.rook) * 500;
+    score -= this.countBits(blackPieces & this.board.b.queen) * 900;
+    score -= this.countBits(blackPieces & this.board.b.king) * 20000;
+
+    // mobility
+    score += this.generateMoves().length * 10;
+
+    return score;
+  };
+
+  countBits = (board: BitBoard) => {
+    let count = 0;
+
+    while (board) {
+      count++;
+      const ls1b = this.getLS1B(board);
+      board ^= ls1b;
+    }
+
+    return count;
   };
 
   parseUCIMove = (move: string): Move => {
