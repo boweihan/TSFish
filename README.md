@@ -1,7 +1,5 @@
 # TSFish
 
-# TSFish
-
 TSFish is a chess engine with a UCI interface, written with TypeScript and NodeJS, intended for use as a bot on Lichess.org.
 
 ## Implementation Notes
