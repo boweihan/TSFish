@@ -1,3 +1,4 @@
+import { describe, beforeEach, expect, it, mock } from "bun:test";
 import UCIEngine from "../src/engine";
 
 describe("PERFT", () => {
@@ -5,9 +6,7 @@ describe("PERFT", () => {
   let logs: Array<string> = [];
 
   beforeEach(() => {
-    jest.spyOn(console, "log").mockImplementation((log) => {
-      logs.push(log);
-    });
+    console.log = mock((l) => logs.push(l));
     engine = new UCIEngine();
     logs = [];
   });
@@ -104,9 +103,5 @@ describe("PERFT", () => {
     engine.run("go perft 3");
 
     expect(logs[0].split(" | ")[1].trim()).toEqual("Nodes: 82054");
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
   });
 });

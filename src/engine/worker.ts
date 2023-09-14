@@ -1,5 +1,5 @@
 import UCIEngine from "./index";
-import { parentPort } from "worker_threads";
+import { parentPort } from "node:worker_threads";
 
 const engine = new UCIEngine();
 

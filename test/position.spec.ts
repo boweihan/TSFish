@@ -1,3 +1,4 @@
+import { describe, expect, it } from "bun:test";
 import { Color, DefaultFEN, MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";

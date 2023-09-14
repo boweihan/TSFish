@@ -4,11 +4,10 @@
   "description": "TypeScript Chess Engine with UCI Interface",
   "main": "index.js",
   "scripts": {
-    "start:dev": "npx nodemon",
-    "start": "npm run build && node build/index.js",
-    "build": "rimraf ./build && tsc",
-    "build:exec": "npm run build && nexe -i build/src/index.js --build --verbose",
-    "test": "jest --watch"
+    "start": "bun run src/index.ts --watch",
+    "build": "bun build src/index.ts --outdir build --minify --target bun",
+    "build:exec": "bun run build/index.js",
+    "test": "bun test --watch"
   },
   "repository": {
     "type": "git",
@@ -28,16 +27,8 @@
   },
   "homepage": "https://github.com/boweihan/TSFish#readme",
   "devDependencies": {
-    "@babel/preset-env": "^7.21.5",
-    "@babel/preset-typescript": "^7.21.5",
-    "@types/jest": "^29.5.1",
-    "@types/node": "^20.2.3",
-    "jest": "^29.5.0",
-    "nodemon": "^2.0.22",
+    "bun-types": "^1.0.1",
     "prettier": "2.8.8",
-    "rimraf": "^5.0.1",
-    "ts-jest": "^29.1.0",
-    "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }
 }

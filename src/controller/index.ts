@@ -1,6 +1,6 @@
-import readline from "readline";
+import readline from "node:readline";
 import path from "path";
-import { Worker } from "worker_threads";
+import { Worker } from "node:worker_threads";
 import { EngineInput, EngineOutput } from "../constants";
 import runWorker from "../worker/runWorker";
 

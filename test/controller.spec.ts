@@ -1,3 +1,4 @@
+import { describe, beforeEach, expect, it, mock } from "bun:test";
 import UCIController from "../src/controller";
 
 describe("UCIController", () => {
@@ -5,11 +6,10 @@ describe("UCIController", () => {
   let logs: Array<string> = [];
 
   beforeEach(() => {
-    jest.spyOn(console, "log").mockImplementation((log) => {
-      logs.push(log);
+    console.log = mock((l) => logs.push(l));
+    process.exit = mock((code) => {
+      throw new Error();
     });
-    // @ts-ignore
-    jest.spyOn(process, "exit").mockImplementation(() => {});
     controller = new UCIController();
     logs = [];
   });

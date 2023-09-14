@@ -2,6 +2,28 @@
 
 TSFish is a chess engine with a UCI interface, written with TypeScript and NodeJS, intended for use as a bot on Lichess.org.
 
+**_2023/09/14 update - TSFish now runs on [Bun](https://bun.sh/)._**
+
+To install bun:
+
+`curl -fsSL https://bun.sh/install | bash # for macOS, Linux, and WSL`
+
+To run in development mode:
+
+`bun start`
+
+To build:
+
+`bun run build`
+
+to run the build:
+
+`bun run build:exec`
+
+to run tests:
+
+`bun test`
+
 ## Implementation Notes
 
 Interface
