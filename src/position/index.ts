@@ -1427,64 +1427,65 @@ export class PositionImpl implements Position {
         }));
     });
 
-  generateCastlingMoves = (color: PlayerColor): Move[] => {
-    const castlingMoves: Move[] = [];
+  generateCastlingMoves = (color: PlayerColor): Move[] =>
+    timer.time("castlingMove", () => {
+      const castlingMoves: Move[] = [];
 
-    const generateKingCastle = (from: BitBoard, color: PlayerColor) => {
-      if (
-        !this.isCollision(from >> BigInt(1)) &&
-        !this.isCollision(from >> BigInt(2)) &&
-        !this.isAttacked(from, color, true) &&
-        !this.isAttacked(from >> BigInt(1), color, true) &&
-        !this.isAttacked(from >> BigInt(2), color, true)
-      ) {
-        return {
-          from,
-          to: from >> BigInt(2),
-          kind: MoveType.KING_CASTLE,
-        };
-      }
-    };
+      const generateKingCastle = (from: BitBoard, color: PlayerColor) => {
+        if (
+          !this.isCollision(from >> BigInt(1)) &&
+          !this.isCollision(from >> BigInt(2)) &&
+          !this.isAttacked(from, color, true) &&
+          !this.isAttacked(from >> BigInt(1), color, true) &&
+          !this.isAttacked(from >> BigInt(2), color, true)
+        ) {
+          return {
+            from,
+            to: from >> BigInt(2),
+            kind: MoveType.KING_CASTLE,
+          };
+        }
+      };
 
-    const generateQueenCastle = (from: BitBoard, color: PlayerColor) => {
-      if (
-        !this.isCollision(from << BigInt(1)) &&
-        !this.isCollision(from << BigInt(2)) &&
-        !this.isCollision(from << BigInt(3)) &&
-        !this.isAttacked(from, color, true) &&
-        !this.isAttacked(from << BigInt(1), color, true) &&
-        !this.isAttacked(from << BigInt(2), color, true)
-      ) {
-        return {
-          from,
-          to: from << BigInt(2),
-          kind: MoveType.QUEEN_CASTLE,
-        };
-      }
-    };
+      const generateQueenCastle = (from: BitBoard, color: PlayerColor) => {
+        if (
+          !this.isCollision(from << BigInt(1)) &&
+          !this.isCollision(from << BigInt(2)) &&
+          !this.isCollision(from << BigInt(3)) &&
+          !this.isAttacked(from, color, true) &&
+          !this.isAttacked(from << BigInt(1), color, true) &&
+          !this.isAttacked(from << BigInt(2), color, true)
+        ) {
+          return {
+            from,
+            to: from << BigInt(2),
+            kind: MoveType.QUEEN_CASTLE,
+          };
+        }
+      };
 
-    if (color === "w") {
-      if (this.state.castlingRights[Castling.WHITE_KING_SIDE]) {
-        const kingCastle = generateKingCastle(this.board.w.king, color);
-        if (kingCastle) castlingMoves.push(kingCastle);
+      if (color === "w") {
+        if (this.state.castlingRights[Castling.WHITE_KING_SIDE]) {
+          const kingCastle = generateKingCastle(this.board.w.king, color);
+          if (kingCastle) castlingMoves.push(kingCastle);
+        }
+        if (this.state.castlingRights[Castling.WHITE_QUEEN_SIDE]) {
+          const queenCastle = generateQueenCastle(this.board.w.king, color);
+          if (queenCastle) castlingMoves.push(queenCastle);
+        }
+      } else if (color === "b") {
+        if (this.state.castlingRights[Castling.BLACK_KING_SIDE]) {
+          const kingCastle = generateKingCastle(this.board.b.king, color);
+          if (kingCastle) castlingMoves.push(kingCastle);
+        }
+        if (this.state.castlingRights[Castling.BLACK_QUEEN_SIDE]) {
+          const queenCastle = generateQueenCastle(this.board.b.king, color);
+          if (queenCastle) castlingMoves.push(queenCastle);
+        }
       }
-      if (this.state.castlingRights[Castling.WHITE_QUEEN_SIDE]) {
-        const queenCastle = generateQueenCastle(this.board.w.king, color);
-        if (queenCastle) castlingMoves.push(queenCastle);
-      }
-    } else if (color === "b") {
-      if (this.state.castlingRights[Castling.BLACK_KING_SIDE]) {
-        const kingCastle = generateKingCastle(this.board.b.king, color);
-        if (kingCastle) castlingMoves.push(kingCastle);
-      }
-      if (this.state.castlingRights[Castling.BLACK_QUEEN_SIDE]) {
-        const queenCastle = generateQueenCastle(this.board.b.king, color);
-        if (queenCastle) castlingMoves.push(queenCastle);
-      }
-    }
 
-    return castlingMoves;
-  };
+      return castlingMoves;
+    });
 
   generateKingMoves = (
     from: BitBoard,

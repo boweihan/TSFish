@@ -11,6 +11,7 @@ export type Timings = {
   kingMove: number;
   legalMoves: number;
   isCheck: number;
+  castlingMove: number;
 };
 
 export type Timing = keyof Timings;
@@ -28,6 +29,7 @@ const defaultTimings = {
   kingMove: 0,
   legalMoves: 0,
   isCheck: 0,
+  castlingMove: 0,
 };
 
 const defaultCounts = {
@@ -43,6 +45,7 @@ const defaultCounts = {
   kingMove: 0,
   legalMoves: 0,
   isCheck: 0,
+  castlingMove: 0,
 };
 
 class Timer {
