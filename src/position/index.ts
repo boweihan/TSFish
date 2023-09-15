@@ -32,6 +32,7 @@ import {
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
+import { PrecomputedMasks, generateMasks } from "../util/masks";
 
 type State = {
   activeColor: PlayerColor;
@@ -57,12 +58,14 @@ export class PositionImpl implements Position {
   board: ClassicalBitBoards;
   state: State;
   history: { board: ClassicalBitBoards; state: State }[];
+  masks: PrecomputedMasks;
 
   constructor(fen?: string) {
     fen = fen || DefaultFEN;
     this.board = boardsToBitBoards(this.fenToBoard(fen));
     this.state = this.fenToState(fen);
     this.history = [];
+    this.masks = generateMasks();
   }
 
   search = (): string => {
@@ -780,22 +783,16 @@ export class PositionImpl implements Position {
     return nodes;
   }
 
+  isOwnCollision(to: BitBoard, color: PlayerColor) {
+    return this.board[color].piece & to;
+  }
+
   isCollision(to: BitBoard) {
     return (this.board.w.piece & to) | (this.board.b.piece & to);
   }
 
   isCapture(to: BitBoard, color: PlayerColor) {
-    if (color === Color.WHITE) {
-      return this.board.b.piece & to;
-    }
-
-    if (color === Color.BLACK) {
-      return this.board.w.piece & to;
-    }
-
-    // FIXME: support en-passant target as a capture
-
-    return BigInt(0);
+    return this.board[color === "w" ? "b" : "w"].piece & to;
   }
 
   set(board: BitBoard, square: BitBoard): BitBoard {
@@ -1495,18 +1492,8 @@ export class PositionImpl implements Position {
     isCastling: boolean = false
   ): Move[] =>
     timer.time("kingMove", () => {
-      const moves = [
-        (from << BigInt(8)) & Max64BitInt, // no
-        (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
-        (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
-        (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
-        from >> BigInt(8), // so
-        (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
-        (from << BigInt(1)) & Masks.NOT_A_FILE, // we
-        (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
-      ]
-        .filter(Boolean)
-        .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
+      const moves = this.masks.kingMasks[SquaresReverse[from.toString(2)]]
+        .filter((to) => !this.isOwnCollision(to, color))
         .map((to) => ({
           from,
           to,

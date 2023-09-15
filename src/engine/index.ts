@@ -67,9 +67,9 @@ export default class UCIEngine {
 
           console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
 
-          // timer.print(); // uncomment for detailed profiling
+          timer.print(); // uncomment for detailed profiling
 
-          // timer.reset();
+          timer.reset();
 
           return;
         }
