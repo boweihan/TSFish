@@ -1,6 +1,6 @@
-import { EngineInput, MoveType, Squares } from "../constants";
-import { Move } from "../datatypes/move";
+import { EngineInput } from "../constants";
 import { Position, PositionImpl } from "../position";
+import timer from "../util/timer";
 
 export default class UCIEngine {
   position: Position;
@@ -58,12 +58,19 @@ export default class UCIEngine {
 
           const start = performance.now();
 
-          const nodes = this.position.perft(depth);
+          const nodes = this.position.perft({
+            depth,
+          });
 
           const end = performance.now();
           const time = end - start;
 
           console.log(`Depth: ${depth} | Nodes: ${nodes} | Time: ${time}ms`);
+
+          // timer.print(); // uncomment for detailed profiling
+
+          // timer.reset();
+
           return;
         }
 

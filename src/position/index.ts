@@ -31,6 +31,7 @@ import {
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
+import timer from "../util/timer";
 
 type State = {
   activeColor: PlayerColor;
@@ -44,7 +45,7 @@ export interface Position {
   board: ClassicalBitBoards;
   state: State;
 
-  perft: (depth: number) => number;
+  perft: ({ depth }: { depth: number }) => number;
   makeMove: (move: Move) => void;
   undoMove: () => void;
   parseUCIMove: (move: string) => Move;
@@ -460,49 +461,50 @@ export class PositionImpl implements Position {
     return serialized;
   };
 
-  makeMove(move: Move) {
-    // put board in board history (for undo)
-    this.history.push(cloneDeep({ board: this.board, state: this.state }));
+  makeMove = (move: Move) =>
+    timer.time("makeMove", () => {
+      // put board in board history (for undo)
+      this.history.push(cloneDeep({ board: this.board, state: this.state }));
 
-    // clear enpassant target
-    this.updateEnPassantSquare("-");
+      // clear enpassant target
+      this.updateEnPassantSquare("-");
 
-    // handle quiet move
-    move.kind === MoveType.QUIET && this.makeQuietMove(move);
+      // handle quiet move
+      move.kind === MoveType.QUIET && this.makeQuietMove(move);
 
-    // handle enpassant capture
-    move.kind === MoveType.EN_PASSANT && this.makeEnPassantCapture(move);
+      // handle enpassant capture
+      move.kind === MoveType.EN_PASSANT && this.makeEnPassantCapture(move);
 
-    // handle double pawn push and update enpassant square
-    move.kind === MoveType.DOUBLE_PAWN_PUSH && this.makeDoublePawnPush(move);
+      // handle double pawn push and update enpassant square
+      move.kind === MoveType.DOUBLE_PAWN_PUSH && this.makeDoublePawnPush(move);
 
-    // handle capture
-    move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
+      // handle capture
+      move.kind === MoveType.CAPTURE && this.makeCaptureMove(move);
 
-    // handle promotions
-    (move.kind === MoveType.KNIGHT_PROMOTION ||
-      move.kind === MoveType.BISHOP_PROMOTION ||
-      move.kind === MoveType.ROOK_PROMOTION ||
-      move.kind === MoveType.QUEEN_PROMOTION) &&
-      this.makePromotionMove(move);
+      // handle promotions
+      (move.kind === MoveType.KNIGHT_PROMOTION ||
+        move.kind === MoveType.BISHOP_PROMOTION ||
+        move.kind === MoveType.ROOK_PROMOTION ||
+        move.kind === MoveType.QUEEN_PROMOTION) &&
+        this.makePromotionMove(move);
 
-    // handle promotion captures
-    (move.kind === MoveType.KNIGHT_PROMO_CAPTURE ||
-      move.kind === MoveType.BISHOP_PROMO_CAPTURE ||
-      move.kind === MoveType.ROOK_PROMO_CAPTURE ||
-      move.kind === MoveType.QUEEN_PROMO_CAPTURE) &&
-      this.makePromotionCapture(move);
+      // handle promotion captures
+      (move.kind === MoveType.KNIGHT_PROMO_CAPTURE ||
+        move.kind === MoveType.BISHOP_PROMO_CAPTURE ||
+        move.kind === MoveType.ROOK_PROMO_CAPTURE ||
+        move.kind === MoveType.QUEEN_PROMO_CAPTURE) &&
+        this.makePromotionCapture(move);
 
-    // handle castling moves
-    (move.kind === MoveType.KING_CASTLE ||
-      move.kind === MoveType.QUEEN_CASTLE) &&
-      this.makeCastlingMove(move);
+      // handle castling moves
+      (move.kind === MoveType.KING_CASTLE ||
+        move.kind === MoveType.QUEEN_CASTLE) &&
+        this.makeCastlingMove(move);
 
-    // update board state
-    this.updateActiveColor();
+      // update board state
+      this.updateActiveColor();
 
-    this.updateFullMoveNumber();
-  }
+      this.updateFullMoveNumber();
+    });
 
   determinePiece(from: BitBoard): Piece {
     const { w, b } = this.board;
@@ -709,25 +711,36 @@ export class PositionImpl implements Position {
     this.updateCastlingRights(color, from, Pieces.KING);
   }
 
-  undoMove() {
-    // retrieve move from board history
-    const entry = this.history.pop();
+  undoMove = () =>
+    timer.time("undoMove", () => {
+      // retrieve move from board history
+      const entry = this.history.pop();
 
-    if (entry) {
-      // restore board
-      this.board = entry.board;
+      if (entry) {
+        // restore board
+        this.board = entry.board;
 
-      // restore state
-      this.state = entry.state;
-    }
-  }
+        // restore state
+        this.state = entry.state;
+      }
+    });
 
-  perft(depth: number, move?: string, startingDepth: number = depth) {
+  perft({
+    depth,
+    move,
+    startingDepth = depth,
+  }: {
+    depth: number;
+    move?: string;
+    startingDepth?: number;
+  }) {
     if (depth === 0) {
       return 1;
     }
 
     const moves = this.generateMoves();
+
+    // add to move generation time
 
     // console.log(
     //   moves.map(
@@ -750,13 +763,15 @@ export class PositionImpl implements Position {
 
     for (let move of moves) {
       this.makeMove(move);
-      nodes += this.perft(
-        depth - 1,
-        `${SquaresReverse[move.from.toString(2)]}${
+
+      nodes += this.perft({
+        depth: depth - 1,
+        move: `${SquaresReverse[move.from.toString(2)]}${
           SquaresReverse[move.to.toString(2)]
         }`,
-        startingDepth
-      );
+        startingDepth,
+      });
+
       this.undoMove();
     }
 
@@ -777,6 +792,8 @@ export class PositionImpl implements Position {
     if (color === Color.BLACK) {
       return this.board.w.piece & to;
     }
+
+    // FIXME: support en-passant target as a capture
 
     return BigInt(0);
   }
@@ -937,70 +954,70 @@ export class PositionImpl implements Position {
     );
   }
 
-  generateMoves = () => {
-    let moves: Move[] = [];
+  generateMoves = () =>
+    timer.time("generateMove", () => {
+      let moves: Move[] = [];
 
-    const generateMovesForPiece = (
-      board: BitBoard,
-      callback: (...args: any[]) => Move[]
-    ) => {
-      while (board) {
-        const ls1b = this.getLS1B(board);
-        moves = moves.concat(callback(ls1b));
-        board ^= ls1b; // remove ls1b from board
-      }
-    };
-
-    const partialRight = (fn: Function, ...presetArgs: any[]) =>
-      function partiallyApplied(...laterArgs: any[]) {
-        return fn(...laterArgs, ...presetArgs);
+      const generateMovesForPiece = (
+        board: BitBoard,
+        callback: (...args: any[]) => Move[]
+      ) => {
+        while (board) {
+          const ls1b = this.getLS1B(board);
+          moves = moves.concat(callback(ls1b));
+          board ^= ls1b; // remove ls1b from board
+        }
       };
 
-    const color = this.state.activeColor;
+      const partialRight = (fn: Function, ...presetArgs: any[]) =>
+        function partiallyApplied(...laterArgs: any[]) {
+          return fn(...laterArgs, ...presetArgs);
+        };
 
-    generateMovesForPiece(
-      this.board[color].pawn,
-      partialRight(this.generatePawnMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].pawn,
-      partialRight(this.generatePawnAttacks, color)
-    );
-    generateMovesForPiece(
-      this.board[color].knight,
-      partialRight(this.generateKnightMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].bishop,
-      partialRight(this.generateBishopMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].rook,
-      partialRight(this.generateRookMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].queen,
-      partialRight(this.generateQueenMoves, color)
-    );
-    generateMovesForPiece(
-      this.board[color].king,
-      partialRight(this.generateKingMoves, color)
-    );
+      const color = this.state.activeColor;
 
-    //  strip illegal moves (not performant)
-    moves = moves.filter((move) => {
-      this.makeMove(move);
-      const isLegal = !this.isCheck(color);
-      this.undoMove();
-      return isLegal;
+      generateMovesForPiece(
+        this.board[color].pawn,
+        partialRight(this.generatePawnMoves, color)
+      );
+      generateMovesForPiece(
+        this.board[color].knight,
+        partialRight(this.generateKnightMoves, color)
+      );
+      generateMovesForPiece(
+        this.board[color].pawn,
+        partialRight(this.generatePawnAttacks, color)
+      );
+      generateMovesForPiece(
+        this.board[color].bishop,
+        partialRight(this.generateBishopMoves, color)
+      );
+      generateMovesForPiece(
+        this.board[color].rook,
+        partialRight(this.generateRookMoves, color)
+      );
+      generateMovesForPiece(
+        this.board[color].queen,
+        partialRight(this.generateQueenMoves, color)
+      );
+      generateMovesForPiece(
+        this.board[color].king,
+        partialRight(this.generateKingMoves, color)
+      );
+
+      moves = moves.filter((move) => {
+        this.makeMove(move);
+        const isLegal = !this.isCheck(color);
+        this.undoMove();
+        return isLegal;
+      });
+
+      if (moves.length === 0) {
+        // checkmate
+      }
+
+      return moves;
     });
-
-    if (moves.length === 0) {
-      // checkmate
-    }
-
-    return moves;
-  };
 
   getLS1B = (board: BitBoard) => {
     // intersection of binary number and it's twos complement isolates the LS1B
@@ -1009,87 +1026,96 @@ export class PositionImpl implements Position {
     return board & -board;
   };
 
-  generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] => {
-    const moves = [];
+  generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("pawnMove", () => {
+      const moves = [];
 
-    switch (color) {
-      case "w":
-        // single push
-        const singlePushW = from << BigInt(8);
+      switch (color) {
+        case "w":
+          // single push
+          const singlePushW = from << BigInt(8);
 
-        if (
-          singlePushW & Max64BitInt && // 64 bits
-          !this.isCollision(singlePushW)
-        ) {
-          const promotions = this.generatePromotions(from, singlePushW, color);
-          if (promotions.length > 0) {
-            moves.push(...promotions);
-          } else {
+          if (
+            singlePushW & Max64BitInt && // 64 bits
+            !this.isCollision(singlePushW)
+          ) {
+            const promotions = this.generatePromotions(
+              from,
+              singlePushW,
+              color
+            );
+            if (promotions.length > 0) {
+              moves.push(...promotions);
+            } else {
+              moves.push({
+                from,
+                to: singlePushW,
+                kind: MoveType.QUIET,
+              }); // ensure pawn pushes don't go off the board for white
+            }
+          }
+
+          // double push
+          const doublePushW = from << BigInt(16);
+
+          if (
+            from & Rank2 && // rank2
+            doublePushW & Max64BitInt && // 64 bits
+            !this.isCollision(singlePushW) &&
+            !this.isCollision(doublePushW)
+          ) {
             moves.push({
               from,
-              to: singlePushW,
-              kind: MoveType.QUIET,
-            }); // ensure pawn pushes don't go off the board for white
+              to: doublePushW,
+              kind: MoveType.DOUBLE_PAWN_PUSH,
+            });
           }
-        }
+          // promotion
+          break;
+        case "b":
+          // single push
+          const singlePushB = from >> BigInt(8);
 
-        // double push
-        const doublePushW = from << BigInt(16);
+          if (!this.isCollision(singlePushB)) {
+            const promotions = this.generatePromotions(
+              from,
+              singlePushB,
+              color
+            );
 
-        if (
-          from & Rank2 && // rank2
-          doublePushW & Max64BitInt && // 64 bits
-          !this.isCollision(singlePushW) &&
-          !this.isCollision(doublePushW)
-        ) {
-          moves.push({
-            from,
-            to: doublePushW,
-            kind: MoveType.DOUBLE_PAWN_PUSH,
-          });
-        }
-        // promotion
-        break;
-      case "b":
-        // single push
-        const singlePushB = from >> BigInt(8);
+            if (promotions.length > 0) {
+              moves.push(...promotions);
+            } else {
+              moves.push({
+                from,
+                to: singlePushB,
+                kind: MoveType.QUIET,
+              }); // ensure pawn pushes don't go off the board for white
+            }
+          }
 
-        if (!this.isCollision(singlePushB)) {
-          const promotions = this.generatePromotions(from, singlePushB, color);
+          // double push
+          const doublePushB = from >> BigInt(16);
 
-          if (promotions.length > 0) {
-            moves.push(...promotions);
-          } else {
+          if (
+            from & Rank7 && // rank 7
+            !this.isCollision(singlePushB) &&
+            !this.isCollision(doublePushB)
+          ) {
             moves.push({
               from,
-              to: singlePushB,
-              kind: MoveType.QUIET,
-            }); // ensure pawn pushes don't go off the board for white
+              to: doublePushB,
+              kind: MoveType.DOUBLE_PAWN_PUSH,
+            });
           }
-        }
+          // promotion
+          break;
+        default:
+          throw new Error("invalid player color!");
+      }
 
-        // double push
-        const doublePushB = from >> BigInt(16);
-
-        if (
-          from & Rank7 && // rank 7
-          !this.isCollision(singlePushB) &&
-          !this.isCollision(doublePushB)
-        ) {
-          moves.push({
-            from,
-            to: doublePushB,
-            kind: MoveType.DOUBLE_PAWN_PUSH,
-          });
-        }
-        // promotion
-        break;
-      default:
-        throw new Error("invalid player color!");
-    }
-
-    return moves;
-  };
+      return moves;
+    });
 
   generatePromotions = (from: BitBoard, to: BitBoard, color: PlayerColor) => {
     const promotions = [];
@@ -1190,72 +1216,79 @@ export class PositionImpl implements Position {
     return attacks;
   };
 
-  generatePawnAttacks = (from: BitBoard, color: PlayerColor): Move[] => {
-    let attacks: Move[] = [];
+  generatePawnAttacks = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("pawnAttack", () => {
+      let attacks: Move[] = [];
 
-    switch (color) {
-      case "w":
-        attacks = attacks.concat(
-          this.generatePawnAttack(
-            from,
-            from << BigInt(7),
-            Masks.NOT_H_FILE,
-            color
-          )
-        );
-        attacks = attacks.concat(
-          this.generatePawnAttack(
-            from,
-            from << BigInt(9),
-            Masks.NOT_A_FILE,
-            color
-          )
-        );
-        break;
-      case "b":
-        attacks = attacks.concat(
-          this.generatePawnAttack(
-            from,
-            from >> BigInt(7),
-            Masks.NOT_A_FILE,
-            color
-          )
-        );
-        attacks = attacks.concat(
-          this.generatePawnAttack(
-            from,
-            from >> BigInt(9),
-            Masks.NOT_H_FILE,
-            color
-          )
-        );
-        break;
-      default:
-        throw new Error("invalid player color!");
-    }
+      switch (color) {
+        case "w":
+          attacks = attacks.concat(
+            this.generatePawnAttack(
+              from,
+              from << BigInt(7),
+              Masks.NOT_H_FILE,
+              color
+            )
+          );
+          attacks = attacks.concat(
+            this.generatePawnAttack(
+              from,
+              from << BigInt(9),
+              Masks.NOT_A_FILE,
+              color
+            )
+          );
+          break;
+        case "b":
+          attacks = attacks.concat(
+            this.generatePawnAttack(
+              from,
+              from >> BigInt(7),
+              Masks.NOT_A_FILE,
+              color
+            )
+          );
+          attacks = attacks.concat(
+            this.generatePawnAttack(
+              from,
+              from >> BigInt(9),
+              Masks.NOT_H_FILE,
+              color
+            )
+          );
+          break;
+        default:
+          throw new Error("invalid player color!");
+      }
 
-    return attacks;
-  };
+      return attacks;
+    });
 
-  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] => {
-    return [
-      (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
-      (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
-      (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
-      (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
-      (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
-      (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
-      (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
-      (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
-    ]
-      .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
-      .map((to) => ({
-        from,
-        to,
-        kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
-      }));
-  };
+  // TODO
+  // - Get all possible moves as a precomputed mask
+  // - bitwise AND with own pieces to get possible moves
+  // - bitwise AND with opponent pieces to get captures
+  // - bitwise AND with enpassant target to get enpassant captures
+  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("knightMove", () => {
+      return [
+        (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
+        (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
+        (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
+        (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
+        (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
+        (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
+        (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
+        (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
+      ]
+        .filter(Boolean)
+        .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
+        .map((to) => ({
+          from,
+          to,
+          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
+        }));
+    });
 
   generateRayMoves = (
     from: BitBoard,
@@ -1287,112 +1320,115 @@ export class PositionImpl implements Position {
     return moves;
   };
 
-  generateBishopMoves = (from: BitBoard, color: PlayerColor): Move[] => {
-    return this.generateRayMoves(
-      from,
-      (ray) => {
-        ray <<= BigInt(7);
-        ray &= Max64BitInt;
-        ray &= Masks.NOT_H_FILE;
+  generateBishopMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("bishopMove", () => {
+      return this.generateRayMoves(
+        from,
+        (ray) => {
+          ray <<= BigInt(7);
+          ray &= Max64BitInt;
+          ray &= Masks.NOT_H_FILE;
 
-        return ray;
-      },
-      color
-    )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray <<= BigInt(9);
-            ray &= Max64BitInt;
-            ray &= Masks.NOT_A_FILE;
-
-            return ray;
-          },
-          color
-        )
+          return ray;
+        },
+        color
       )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray >>= BigInt(7);
-            ray &= Masks.NOT_A_FILE;
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray <<= BigInt(9);
+              ray &= Max64BitInt;
+              ray &= Masks.NOT_A_FILE;
 
-            return ray;
-          },
-          color
+              return ray;
+            },
+            color
+          )
         )
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray >>= BigInt(7);
+              ray &= Masks.NOT_A_FILE;
+
+              return ray;
+            },
+            color
+          )
+        )
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray >>= BigInt(9);
+              ray &= Masks.NOT_H_FILE;
+
+              return ray;
+            },
+            color
+          )
+        );
+    });
+
+  generateRookMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("rookMove", () => {
+      return this.generateRayMoves(
+        from,
+        (ray) => {
+          ray <<= BigInt(8);
+          ray &= Max64BitInt;
+
+          return ray;
+        },
+        color
       )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray >>= BigInt(9);
-            ray &= Masks.NOT_H_FILE;
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray >>= BigInt(8);
 
-            return ray;
-          },
-          color
+              return ray;
+            },
+            color
+          )
         )
-      );
-  };
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray <<= BigInt(1);
+              ray &= Masks.NOT_A_FILE;
 
-  generateRookMoves = (from: BitBoard, color: PlayerColor): Move[] => {
-    return this.generateRayMoves(
-      from,
-      (ray) => {
-        ray <<= BigInt(8);
-        ray &= Max64BitInt;
-
-        return ray;
-      },
-      color
-    )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray >>= BigInt(8);
-
-            return ray;
-          },
-          color
+              return ray;
+            },
+            color
+          )
         )
-      )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray <<= BigInt(1);
-            ray &= Masks.NOT_A_FILE;
+        .concat(
+          this.generateRayMoves(
+            from,
+            (ray) => {
+              ray >>= BigInt(1);
+              ray &= Masks.NOT_H_FILE;
 
-            return ray;
-          },
-          color
-        )
-      )
-      .concat(
-        this.generateRayMoves(
-          from,
-          (ray) => {
-            ray >>= BigInt(1);
-            ray &= Masks.NOT_H_FILE;
+              return ray;
+            },
+            color
+          )
+        );
+    });
 
-            return ray;
-          },
-          color
-        )
-      );
-  };
-
-  generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] => {
-    return this.generateBishopMoves(from, color)
-      .concat(this.generateRookMoves(from, color))
-      .map((move) => ({
-        ...move,
-      }));
-  };
+  generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("queenMove", () => {
+      return this.generateBishopMoves(from, color)
+        .concat(this.generateRookMoves(from, color))
+        .map((move) => ({
+          ...move,
+        }));
+    });
 
   generateCastlingMoves = (color: PlayerColor): Move[] => {
     const castlingMoves: Move[] = [];
@@ -1457,25 +1493,26 @@ export class PositionImpl implements Position {
     from: BitBoard,
     color: PlayerColor,
     isCastling: boolean = false
-  ): Move[] => {
-    const moves = [
-      (from << BigInt(8)) & Max64BitInt, // no
-      (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
-      (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
-      (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
-      from >> BigInt(8), // so
-      (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
-      (from << BigInt(1)) & Masks.NOT_A_FILE, // we
-      (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
-    ]
-      .filter(Boolean)
-      .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
-      .map((to) => ({
-        from,
-        to,
-        kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
-      }));
+  ): Move[] =>
+    timer.time("kingMove", () => {
+      const moves = [
+        (from << BigInt(8)) & Max64BitInt, // no
+        (from << BigInt(7)) & Masks.NOT_H_FILE, // noEa
+        (from >> BigInt(1)) & Masks.NOT_H_FILE, // ea
+        (from >> BigInt(9)) & Masks.NOT_H_FILE, // soEa
+        from >> BigInt(8), // so
+        (from >> BigInt(7)) & Masks.NOT_A_FILE, // soWe
+        (from << BigInt(1)) & Masks.NOT_A_FILE, // we
+        (from << BigInt(9)) & Masks.NOT_A_FILE, // noWe
+      ]
+        .filter(Boolean)
+        .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
+        .map((to) => ({
+          from,
+          to,
+          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
+        }));
 
-    return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
-  };
+      return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
+    });
 }
