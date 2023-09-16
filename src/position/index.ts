@@ -1261,32 +1261,6 @@ export class PositionImpl implements Position {
       return attacks;
     });
 
-  // TODO
-  // - Get all possible moves as a precomputed mask
-  // - bitwise AND with own pieces to get possible moves
-  // - bitwise AND with opponent pieces to get captures
-  // - bitwise AND with enpassant target to get enpassant captures
-  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("knightMove", () => {
-      return [
-        (from << BigInt(17)) & Masks.NOT_A_FILE, // noNoEa
-        (from << BigInt(10)) & Masks.NOT_AB_FILE, // noEaEa
-        (from >> BigInt(6)) & Masks.NOT_AB_FILE, // soEaEa
-        (from >> BigInt(15)) & Masks.NOT_A_FILE, // soSoEa
-        (from << BigInt(15)) & Masks.NOT_H_FILE, // noNoWe
-        (from << BigInt(6)) & Masks.NOT_GH_FILE, // noWeWe
-        (from >> BigInt(10)) & Masks.NOT_GH_FILE, // soWeWe
-        (from >> BigInt(17)) & Masks.NOT_H_FILE, // soSoWe
-      ]
-        .filter(Boolean)
-        .filter((to) => !this.isCollision(to) || this.isCapture(to, color))
-        .map((to) => ({
-          from,
-          to,
-          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
-        }));
-    });
-
   generateRayMoves = (
     from: BitBoard,
     direction: (from: BitBoard) => BitBoard,
@@ -1502,5 +1476,16 @@ export class PositionImpl implements Position {
         }));
 
       return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
+    });
+
+  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("knightMove", () => {
+      return this.masks.knightMasks[SquaresReverse[from.toString(2)]]
+        .filter((to) => !this.isOwnCollision(to, color))
+        .map((to) => ({
+          from,
+          to,
+          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
+        }));
     });
 }
