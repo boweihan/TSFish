@@ -29,7 +29,7 @@ import {
   Squares,
   SquaresReverse,
 } from "../constants";
-import { Move, Piece } from "../datatypes/move";
+import { Threat, Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
@@ -951,56 +951,58 @@ export class PositionImpl implements Position {
     );
   }
 
+  forEachSquare = (
+    board: BitBoard,
+    callback: (...args: BitBoard[]) => void
+  ) => {
+    while (board) {
+      const ls1b = this.getLS1B(board);
+      callback(ls1b);
+      board ^= ls1b; // remove ls1b from board
+    }
+  };
+
   generateMoves = () =>
     timer.time("generateMove", () => {
       let moves: Move[] = [];
 
-      const generateMovesForPiece = (
-        board: BitBoard,
-        callback: (...args: any[]) => Move[]
-      ) => {
-        while (board) {
-          const ls1b = this.getLS1B(board);
-          moves = moves.concat(callback(ls1b));
-          board ^= ls1b; // remove ls1b from board
-        }
-      };
-
-      const partialRight = (fn: Function, ...presetArgs: any[]) =>
-        function partiallyApplied(...laterArgs: any[]) {
-          return fn(...laterArgs, ...presetArgs);
-        };
-
       const color = this.state.activeColor;
 
-      generateMovesForPiece(
-        this.board[color].pawn,
-        partialRight(this.generatePawnMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].knight,
-        partialRight(this.generateKnightMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].pawn,
-        partialRight(this.generatePawnAttacks, color)
-      );
-      generateMovesForPiece(
-        this.board[color].bishop,
-        partialRight(this.generateBishopMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].rook,
-        partialRight(this.generateRookMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].queen,
-        partialRight(this.generateQueenMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].king,
-        partialRight(this.generateKingMoves, color)
-      );
+      // generate opposite color attack mask - 1 64 bit bitboard
+      // - when moving king, check that it doesn't & with attack mask
+      // - when moving another piece, if it's in line with king, check that king isn't attacked by an opposing
+      //    sliding piece going the opposite direction
+
+      // if you move a piece check that the piece wasn't attacked by a sliding piece
+      // if it was, draw a line from that sliding piece and see if it hits the king
+
+      // start by checking if the king is in check ( & with attack mask )
+      // if it is, check how many checks
+      // if single check and it's by a non sliding piece, only generate king moves that don't put the king in a position that & with attack mask
+      // if it's double check, only generate king moves
+      // if it's a single check by a sliding piece, evoke any moves that don't land between the king and checking piece + king moves
+
+      this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+        moves = moves.concat(this.generatePawnMoves(square, color));
+      });
+      this.forEachSquare(this.board[color].knight, (square: BitBoard) => {
+        moves = moves.concat(this.generateKnightMoves(square, color));
+      });
+      this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+        moves = moves.concat(this.generatePawnAttacks(square, color));
+      });
+      this.forEachSquare(this.board[color].bishop, (square: BitBoard) => {
+        moves = moves.concat(this.generateBishopMoves(square, color));
+      });
+      this.forEachSquare(this.board[color].rook, (square: BitBoard) => {
+        moves = moves.concat(this.generateRookMoves(square, color));
+      });
+      this.forEachSquare(this.board[color].queen, (square: BitBoard) => {
+        moves = moves.concat(this.generateQueenMoves(square, color));
+      });
+      this.forEachSquare(this.board[color].king, (square: BitBoard) => {
+        moves = moves.concat(this.generateKingMoves(square, color));
+      });
 
       moves = moves.filter((move) => {
         this.makeMove(move);
@@ -1021,6 +1023,57 @@ export class PositionImpl implements Position {
     // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
     // javascript represents negative numbers as the twos complement
     return board & -board;
+  };
+
+  generateThreatMap = (): { [key: string]: Threat[] } => {
+    let attackMap: { [key: string]: Threat[] } = {};
+
+    const color = this.state.activeColor === "w" ? "b" : "w";
+
+    const populateAttackMap = (piece: Piece, moves: Move[]) => {
+      moves.forEach((move) => {
+        const square = SquaresReverse[move.to.toString(2)];
+
+        if (!attackMap[square]) {
+          attackMap[square] = [
+            {
+              from: move.from,
+              to: move.to,
+              piece,
+            },
+          ];
+        } else {
+          attackMap[square].push({
+            from: move.from,
+            to: move.to,
+            piece,
+          });
+        }
+      });
+    };
+
+    this.forEachSquare(this.board[color].knight, (square: BitBoard) => {
+      populateAttackMap(Pieces.KNIGHT, this.generateKnightMoves(square, color));
+    });
+    this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+      populateAttackMap(Pieces.PAWN, this.generatePawnThreats(square, color));
+    });
+    this.forEachSquare(this.board[color].bishop, (square: BitBoard) => {
+      populateAttackMap(Pieces.BISHOP, this.generateBishopMoves(square, color));
+    });
+    this.forEachSquare(this.board[color].rook, (square: BitBoard) => {
+      populateAttackMap(Pieces.ROOK, this.generateRookMoves(square, color));
+    });
+
+    this.forEachSquare(this.board[color].queen, (square: BitBoard) => {
+      const moves = this.generateQueenMoves(square, color);
+      populateAttackMap(Pieces.QUEEN, this.generateQueenMoves(square, color));
+    });
+    this.forEachSquare(this.board[color].king, (square: BitBoard) => {
+      populateAttackMap(Pieces.KING, this.generateKingMoves(square, color));
+    });
+
+    return attackMap;
   };
 
   generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] =>
@@ -1178,6 +1231,20 @@ export class PositionImpl implements Position {
     return promotions;
   };
 
+  generatePawnThreat = (from: BitBoard, to: BitBoard, mask: BitBoard) => {
+    const threats = [];
+
+    if (to & Max64BitInt & mask) {
+      threats.push({
+        from,
+        to,
+        kind: MoveType.THREAT,
+      });
+    }
+
+    return threats;
+  };
+
   generatePawnAttack = (
     from: BitBoard,
     to: BitBoard,
@@ -1212,6 +1279,34 @@ export class PositionImpl implements Position {
 
     return attacks;
   };
+
+  generatePawnThreats = (from: BitBoard, color: PlayerColor): Move[] =>
+    timer.time("pawnThreat", () => {
+      let attacks: Move[] = [];
+
+      switch (color) {
+        case "w":
+          attacks = attacks.concat(
+            this.generatePawnThreat(from, from << BigInt(7), Masks.NOT_H_FILE)
+          );
+          attacks = attacks.concat(
+            this.generatePawnThreat(from, from << BigInt(9), Masks.NOT_A_FILE)
+          );
+          break;
+        case "b":
+          attacks = attacks.concat(
+            this.generatePawnThreat(from, from >> BigInt(7), Masks.NOT_A_FILE)
+          );
+          attacks = attacks.concat(
+            this.generatePawnThreat(from, from >> BigInt(9), Masks.NOT_H_FILE)
+          );
+          break;
+        default:
+          throw new Error("invalid player color!");
+      }
+
+      return attacks;
+    });
 
   generatePawnAttacks = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("pawnAttack", () => {
@@ -1394,11 +1489,9 @@ export class PositionImpl implements Position {
 
   generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("queenMove", () => {
-      return this.generateBishopMoves(from, color)
-        .concat(this.generateRookMoves(from, color))
-        .map((move) => ({
-          ...move,
-        }));
+      return this.generateBishopMoves(from, color).concat(
+        this.generateRookMoves(from, color)
+      );
     });
 
   generateCastlingMoves = (color: PlayerColor): Move[] =>

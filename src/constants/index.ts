@@ -270,6 +270,7 @@ export const MoveType = {
   BISHOP_PROMO_CAPTURE: BigInt(11),
   ROOK_PROMO_CAPTURE: BigInt(12),
   QUEEN_PROMO_CAPTURE: BigInt(13),
+  THREAT: BigInt(14),
 };
 
 export const Max64BitInt = BigInt("18446744073709551615");

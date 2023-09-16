@@ -4,6 +4,7 @@ export type Timings = {
   undoMove: number;
   pawnMove: number;
   pawnAttack: number;
+  pawnThreat: number;
   knightMove: number;
   bishopMove: number;
   rookMove: number;
@@ -22,6 +23,7 @@ const defaultTimings = {
   undoMove: 0,
   pawnMove: 0,
   pawnAttack: 0,
+  pawnThreat: 0,
   knightMove: 0,
   bishopMove: 0,
   rookMove: 0,
@@ -38,6 +40,7 @@ const defaultCounts = {
   undoMove: 0,
   pawnMove: 0,
   pawnAttack: 0,
+  pawnThreat: 0,
   knightMove: 0,
   bishopMove: 0,
   rookMove: 0,

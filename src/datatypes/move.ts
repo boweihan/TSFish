@@ -11,3 +11,9 @@ export type Move = {
 };
 
 export type CastlingRight = "K" | "Q" | "k" | "q";
+
+export type Threat = {
+  from: BitBoard;
+  to: BitBoard;
+  piece: Piece;
+};

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { Color, DefaultFEN, MoveType } from "../src/constants";
+import {
+  Color,
+  DefaultFEN,
+  MoveType,
+  Pieces,
+  SquaresReverse,
+} from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
@@ -615,6 +621,257 @@ describe("Position", () => {
   it("handles invalid castling rights", () => {
     const fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b xq e3 0 1";
     expect(() => new PositionImpl(fen)).toThrow(`Invalid FEN: ${fen}`);
+  });
+
+  it("generates attack map", () => {
+    const position = new PositionImpl(
+      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    );
+    const map = position.generateThreatMap();
+    expect(map).toEqual({
+      f6: [
+        {
+          from: Squares.g8,
+          to: Squares.f6,
+          piece: Pieces.KNIGHT,
+        },
+        {
+          from: Squares.g7,
+          to: Squares.f6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.e7,
+          to: Squares.f6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      h6: [
+        {
+          from: Squares.g8,
+          to: Squares.h6,
+          piece: Pieces.KNIGHT,
+        },
+        {
+          from: Squares.g7,
+          to: Squares.h6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      a6: [
+        {
+          from: Squares.b8,
+          to: Squares.a6,
+          piece: Pieces.KNIGHT,
+        },
+        {
+          from: Squares.b7,
+          to: Squares.a6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      c6: [
+        {
+          from: Squares.b8,
+          to: Squares.c6,
+          piece: Pieces.KNIGHT,
+        },
+        {
+          from: Squares.d7,
+          to: Squares.c6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.b7,
+          to: Squares.c6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      g6: [
+        {
+          from: Squares.h7,
+          to: Squares.g6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.f7,
+          to: Squares.g6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      e6: [
+        {
+          from: Squares.f7,
+          to: Squares.e6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.d7,
+          to: Squares.e6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      d6: [
+        {
+          from: Squares.e7,
+          to: Squares.d6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.c7,
+          to: Squares.d6,
+          piece: Pieces.PAWN,
+        },
+      ],
+      b6: [
+        {
+          from: Squares.c7,
+          to: Squares.b6,
+          piece: Pieces.PAWN,
+        },
+        {
+          from: Squares.a7,
+          to: Squares.b6,
+          piece: Pieces.PAWN,
+        },
+      ],
+    });
+  });
+
+  it.only("generates attack map (sliding pieces)", () => {
+    const fen = "r1bk4/q1n5/p7/P4N2/8/B1N5/2Q2PPP/1RK4R w - - 9 26";
+    const position = new PositionImpl(fen);
+    const map = position.generateThreatMap();
+    expect(map).toEqual({
+      b5: [
+        {
+          from: Squares.c7,
+          piece: Pieces.KNIGHT,
+          to: Squares.b5,
+        },
+        {
+          from: Squares.a6,
+          piece: Pieces.PAWN,
+          to: Squares.b5,
+        },
+      ],
+      b6: [
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.b6,
+        },
+      ],
+      b7: [
+        {
+          from: Squares.c8,
+          piece: Pieces.BISHOP,
+          to: Squares.b7,
+        },
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.b7,
+        },
+      ],
+      b8: [
+        {
+          from: Squares.a8,
+          piece: Pieces.ROOK,
+          to: Squares.b8,
+        },
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.b8,
+        },
+      ],
+      c5: [
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.c5,
+        },
+      ],
+      d4: [
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.d4,
+        },
+      ],
+      d5: [
+        {
+          from: Squares.c7,
+          piece: Pieces.KNIGHT,
+          to: Squares.d5,
+        },
+      ],
+      d7: [
+        {
+          from: Squares.c8,
+          piece: Pieces.BISHOP,
+          to: Squares.d7,
+        },
+        {
+          from: Squares.d8,
+          piece: Pieces.KING,
+          to: Squares.d7,
+        },
+      ],
+      e3: [
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.e3,
+        },
+      ],
+      e6: [
+        {
+          from: Squares.c7,
+          piece: Pieces.KNIGHT,
+          to: Squares.e6,
+        },
+        {
+          from: Squares.c8,
+          piece: Pieces.BISHOP,
+          to: Squares.e6,
+        },
+      ],
+      e7: [
+        {
+          from: Squares.d8,
+          piece: Pieces.KING,
+          to: Squares.e7,
+        },
+      ],
+      e8: [
+        {
+          from: Squares.c7,
+          piece: Pieces.KNIGHT,
+          to: Squares.e8,
+        },
+        {
+          from: Squares.d8,
+          piece: Pieces.KING,
+          to: Squares.e8,
+        },
+      ],
+      f2: [
+        {
+          from: Squares.a7,
+          piece: Pieces.QUEEN,
+          to: Squares.f2,
+        },
+      ],
+      f5: [
+        {
+          from: Squares.c8,
+          piece: Pieces.BISHOP,
+          to: Squares.f5,
+        },
+      ],
+    });
   });
 
   it("correctly translates fen piece to bitboard representation", () => {
