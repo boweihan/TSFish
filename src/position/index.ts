@@ -32,7 +32,12 @@ import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
-import { countBits, fanOut, stringify } from "../util/board";
+import {
+  countBits,
+  determinePromotionPiece,
+  fanOut,
+  stringify,
+} from "../util/board";
 import {
   serializeCastlingRights,
   stringifyCastlingRights,
@@ -373,27 +378,6 @@ export class PositionImpl implements Position {
     return piece;
   }
 
-  determinePromotionPiece(move: Move): Piece {
-    const { kind } = move;
-
-    switch (kind) {
-      case MoveType.KNIGHT_PROMOTION:
-      case MoveType.KNIGHT_PROMO_CAPTURE:
-        return Pieces.KNIGHT;
-      case MoveType.BISHOP_PROMOTION:
-      case MoveType.BISHOP_PROMO_CAPTURE:
-        return Pieces.BISHOP;
-      case MoveType.ROOK_PROMOTION:
-      case MoveType.ROOK_PROMO_CAPTURE:
-        return Pieces.ROOK;
-      case MoveType.QUEEN_PROMOTION:
-      case MoveType.QUEEN_PROMO_CAPTURE:
-        return Pieces.QUEEN;
-      default:
-        throw new Error(`Invalid promotion move type: ${kind}`);
-    }
-  }
-
   updateBitboards(
     color: PlayerColor,
     piece: Piece,
@@ -506,7 +490,7 @@ export class PositionImpl implements Position {
 
     const color = this.board.w.piece & from ? "w" : "b";
 
-    const promoPiece = this.determinePromotionPiece(move);
+    const promoPiece = determinePromotionPiece(move);
 
     // update half move clock
     this.resetHalfMoveClock();
@@ -520,7 +504,7 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const oppositeColor = color === "w" ? "b" : "w";
 
-    const promoPiece = this.determinePromotionPiece(move);
+    const promoPiece = determinePromotionPiece(move);
     const capturedPiece = this.determinePiece(to);
 
     // update half move clock

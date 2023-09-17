@@ -1,5 +1,6 @@
-import { SquaresReverse } from "../constants";
+import { MoveType, Pieces, SquaresReverse } from "../constants";
 import { BitBoard } from "../datatypes";
+import { Move, Piece } from "../datatypes/move";
 
 export const stringify = (board: BitBoard): string =>
   SquaresReverse[board.toString(2)];
@@ -33,4 +34,25 @@ export const fanOut = (board: BitBoard) => {
   }
 
   return pieces;
+};
+
+export const determinePromotionPiece = (move: Move): Piece => {
+  const { kind } = move;
+
+  switch (kind) {
+    case MoveType.KNIGHT_PROMOTION:
+    case MoveType.KNIGHT_PROMO_CAPTURE:
+      return Pieces.KNIGHT;
+    case MoveType.BISHOP_PROMOTION:
+    case MoveType.BISHOP_PROMO_CAPTURE:
+      return Pieces.BISHOP;
+    case MoveType.ROOK_PROMOTION:
+    case MoveType.ROOK_PROMO_CAPTURE:
+      return Pieces.ROOK;
+    case MoveType.QUEEN_PROMOTION:
+    case MoveType.QUEEN_PROMO_CAPTURE:
+      return Pieces.QUEEN;
+    default:
+      throw new Error(`Invalid promotion move type: ${kind}`);
+  }
 };
