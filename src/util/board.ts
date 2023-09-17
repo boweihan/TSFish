@@ -1,5 +1,5 @@
 import { MoveType, Pieces, SquaresReverse } from "../constants";
-import { BitBoard } from "../datatypes";
+import { BitBoard, ClassicalBitBoards } from "../datatypes";
 import { Move, Piece } from "../datatypes/move";
 
 export const stringify = (board: BitBoard): string =>
@@ -55,4 +55,26 @@ export const determinePromotionPiece = (move: Move): Piece => {
     default:
       throw new Error(`Invalid promotion move type: ${kind}`);
   }
+};
+
+export const determinePiece = (
+  board: ClassicalBitBoards,
+  from: BitBoard
+): Piece => {
+  const { w, b } = board;
+
+  let piece;
+
+  (w.pawn & from || b.pawn & from) && (piece = Pieces.PAWN);
+  (w.rook & from || b.rook & from) && (piece = Pieces.ROOK);
+  (w.knight & from || b.knight & from) && (piece = Pieces.KNIGHT);
+  (w.bishop & from || b.bishop & from) && (piece = Pieces.BISHOP);
+  (w.queen & from || b.queen & from) && (piece = Pieces.QUEEN);
+  (w.king & from || b.king & from) && (piece = Pieces.KING);
+
+  if (!piece) {
+    throw new Error(`Invalid piece at ${stringify(from)}`);
+  }
+
+  return piece;
 };

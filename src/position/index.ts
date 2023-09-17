@@ -33,7 +33,7 @@ import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
 import {
-  countBits,
+  determinePiece,
   determinePromotionPiece,
   fanOut,
   stringify,
@@ -119,7 +119,7 @@ export class PositionImpl implements Position {
     // handle enpassant capture
     if (
       moveType === MoveType.CAPTURE &&
-      this.determinePiece(from) === Pieces.PAWN &&
+      determinePiece(this.board, from) === Pieces.PAWN &&
       Squares[this.state.enPassantTarget] === to
     ) {
       moveType = MoveType.EN_PASSANT;
@@ -238,7 +238,10 @@ export class PositionImpl implements Position {
         const blackPiece = blackPieces[position];
 
         if (whitePiece === "1") {
-          const piece = this.determinePiece(BigInt(1) << BigInt(63 - position));
+          const piece = determinePiece(
+            this.board,
+            BigInt(1) << BigInt(63 - position)
+          );
 
           if (pad > 0) {
             rankFen += pad.toString();
@@ -259,7 +262,10 @@ export class PositionImpl implements Position {
             rankFen += "K";
           }
         } else if (blackPiece === "1") {
-          const piece = this.determinePiece(BigInt(1) << BigInt(63 - position));
+          const piece = determinePiece(
+            this.board,
+            BigInt(1) << BigInt(63 - position)
+          );
 
           if (pad > 0) {
             rankFen += pad.toString();
@@ -359,25 +365,6 @@ export class PositionImpl implements Position {
       this.updateFullMoveNumber();
     });
 
-  determinePiece(from: BitBoard): Piece {
-    const { w, b } = this.board;
-
-    let piece;
-
-    (w.pawn & from || b.pawn & from) && (piece = Pieces.PAWN);
-    (w.rook & from || b.rook & from) && (piece = Pieces.ROOK);
-    (w.knight & from || b.knight & from) && (piece = Pieces.KNIGHT);
-    (w.bishop & from || b.bishop & from) && (piece = Pieces.BISHOP);
-    (w.queen & from || b.queen & from) && (piece = Pieces.QUEEN);
-    (w.king & from || b.king & from) && (piece = Pieces.KING);
-
-    if (!piece) {
-      throw new Error(`Invalid piece at ${stringify(from)}`);
-    }
-
-    return piece;
-  }
-
   updateBitboards(
     color: PlayerColor,
     piece: Piece,
@@ -412,7 +399,7 @@ export class PositionImpl implements Position {
 
     const color = this.board.w.piece & from ? "w" : "b";
 
-    const piece = this.determinePiece(from);
+    const piece = determinePiece(this.board, from);
 
     // check if castling rights should be updated
     if (piece === Pieces.KING || piece === Pieces.ROOK) {
@@ -432,8 +419,8 @@ export class PositionImpl implements Position {
   makeCaptureMove(move: Move) {
     const { from, to } = move;
 
-    const piece = this.determinePiece(from);
-    const capturedPiece = this.determinePiece(to);
+    const piece = determinePiece(this.board, from);
+    const capturedPiece = determinePiece(this.board, to);
 
     // check which color is moving
     const color = this.board.w.piece & from ? "w" : "b";
@@ -505,7 +492,7 @@ export class PositionImpl implements Position {
     const oppositeColor = color === "w" ? "b" : "w";
 
     const promoPiece = determinePromotionPiece(move);
-    const capturedPiece = this.determinePiece(to);
+    const capturedPiece = determinePiece(this.board, to);
 
     // update half move clock
     this.resetHalfMoveClock();
