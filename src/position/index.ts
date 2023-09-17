@@ -18,14 +18,8 @@ import {
   Castling,
   Color,
   DefaultFEN,
-  Masks,
-  Max64BitInt,
   MoveType,
   Pieces,
-  Rank1,
-  Rank2,
-  Rank7,
-  Rank8,
   Squares,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
@@ -35,13 +29,14 @@ import { PrecomputedMasks, generateMasks } from "../util/masks";
 import {
   determinePiece,
   determinePromotionPiece,
-  fanOut,
   stringify,
 } from "../util/board";
 import {
   serializeCastlingRights,
   stringifyCastlingRights,
 } from "../util/castling";
+import { MiniMax, SearchStrategy } from "../search";
+import { MoveGenerator, PseudoLegalGenerator } from "../generator";
 
 type State = {
   activeColor: PlayerColor;
@@ -54,6 +49,7 @@ type State = {
 export interface Position {
   board: ClassicalBitBoards;
   state: State;
+  masks: PrecomputedMasks;
 
   perft: ({ depth }: { depth: number }) => number;
   makeMove: (move: Move) => void;
@@ -61,6 +57,11 @@ export interface Position {
   generateMoves: () => Move[];
   parseUCIMove: (move: string) => Move;
   positionToFen: () => string;
+  isCheck: (color: PlayerColor) => BitBoard;
+  isCollision: (to: BitBoard) => BitBoard;
+  isOwnCollision: (to: BitBoard, color: PlayerColor) => BitBoard;
+  isCapture: (to: BitBoard, color: PlayerColor) => BitBoard;
+  search: () => string;
 }
 
 export class PositionImpl implements Position {
@@ -68,6 +69,8 @@ export class PositionImpl implements Position {
   state: State;
   history: { board: ClassicalBitBoards; state: State }[];
   masks: PrecomputedMasks;
+  searchStrategy: SearchStrategy;
+  moveGenerator: MoveGenerator;
 
   constructor(fen?: string) {
     fen = fen || DefaultFEN;
@@ -75,6 +78,8 @@ export class PositionImpl implements Position {
     this.state = this.fenToState(fen);
     this.history = [];
     this.masks = generateMasks();
+    this.searchStrategy = new MiniMax(this);
+    this.moveGenerator = new PseudoLegalGenerator(this);
   }
 
   parseUCIMove = (move: string): Move => {
@@ -320,6 +325,35 @@ export class PositionImpl implements Position {
     return fen;
   }
 
+  updateBitboards(
+    color: PlayerColor,
+    piece: Piece,
+    from: BitBoard,
+    to?: BitBoard,
+    promotion?: Piece
+  ) {
+    // update piece bitboard
+    this.board[color][piece] = this.remove(this.board[color][piece], from);
+
+    if (to) {
+      if (promotion) {
+        this.board[color][promotion] = this.set(
+          this.board[color][promotion],
+          to
+        );
+      } else {
+        this.board[color][piece] = this.set(this.board[color][piece], to);
+      }
+    }
+
+    // update pieces bitboard
+    this.board[color].piece = this.remove(this.board[color].piece, from);
+
+    if (to) {
+      this.board[color].piece = this.set(this.board[color].piece, to);
+    }
+  }
+
   makeMove = (move: Move) =>
     timer.time("makeMove", () => {
       // put board in board history (for undo)
@@ -364,35 +398,6 @@ export class PositionImpl implements Position {
 
       this.updateFullMoveNumber();
     });
-
-  updateBitboards(
-    color: PlayerColor,
-    piece: Piece,
-    from: BitBoard,
-    to?: BitBoard,
-    promotion?: Piece
-  ) {
-    // update piece bitboard
-    this.board[color][piece] = this.remove(this.board[color][piece], from);
-
-    if (to) {
-      if (promotion) {
-        this.board[color][promotion] = this.set(
-          this.board[color][promotion],
-          to
-        );
-      } else {
-        this.board[color][piece] = this.set(this.board[color][piece], to);
-      }
-    }
-
-    // update pieces bitboard
-    this.board[color].piece = this.remove(this.board[color].piece, from);
-
-    if (to) {
-      this.board[color].piece = this.set(this.board[color].piece, to);
-    }
-  }
 
   makeQuietMove(move: Move) {
     const { from, to } = move;
@@ -666,71 +671,11 @@ export class PositionImpl implements Position {
     }
   }
 
-  isAttacked(
-    square: BitBoard,
-    color: PlayerColor,
-    isCastling: boolean = false
-  ) {
-    const opponentColor = color === Color.WHITE ? Color.BLACK : Color.WHITE;
-    const opponentBoard = this.board[opponentColor];
-
-    // generating attacks for pieces can effectively create masks for each piece type
-
-    // check if opponent's pawns are attacking
-    const pawnAttacks = this.generatePawnAttacks(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (pawnAttacks & opponentBoard.pawn) return true;
-
-    // check if opponent's knights are attacking
-    const knightAttacks = this.generateKnightMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (knightAttacks & opponentBoard.knight) return true;
-
-    // check if opponent's bishops are attacking
-    const bishopAttacks = this.generateBishopMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (bishopAttacks & opponentBoard.bishop) return true;
-
-    // check if opponent's rooks are attacking
-    const rookAttacks = this.generateRookMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (rookAttacks & opponentBoard.rook) return true;
-
-    // check if opponent's queens are attacking
-    const queenAttacks = this.generateQueenMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (queenAttacks & opponentBoard.queen) return true;
-
-    // check if opponent's king is attacking
-    const kingAttacks = this.generateKingMoves(
-      square,
-      color,
-      isCastling
-    ).reduce((a, b) => a | b.to, BigInt(0));
-
-    if (kingAttacks & opponentBoard.king) return true;
-
-    return false;
-  }
-
   isCheck(color: PlayerColor) {
-    const kingSquare = this.board[color].king;
-    return this.isAttacked(kingSquare, color);
+    return this.moveGenerator.generateAttacksOnSquare(
+      this.board[color].king,
+      color
+    );
   }
 
   isCheckmate() {
@@ -765,515 +710,11 @@ export class PositionImpl implements Position {
     );
   }
 
-  generateMoves = () =>
-    timer.time("generateMove", () => {
-      const color = this.state.activeColor;
+  generateMoves() {
+    return this.moveGenerator.generate();
+  }
 
-      let moves: Move[] = Object.values(Pieces)
-        .map((piece) => ({ piece, boards: fanOut(this.board[color][piece]) }))
-        .map(({ piece, boards }) =>
-          boards
-            .map((board) => {
-              switch (piece) {
-                case Pieces.PAWN:
-                  return this.generatePawnMoves(board, color).concat(
-                    this.generatePawnAttacks(board, color)
-                  );
-                case Pieces.KNIGHT:
-                  return this.generateKnightMoves(board, color);
-                case Pieces.BISHOP:
-                  return this.generateBishopMoves(board, color);
-                case Pieces.ROOK:
-                  return this.generateRookMoves(board, color);
-                case Pieces.QUEEN:
-                  return this.generateQueenMoves(board, color);
-                case Pieces.KING:
-                  return this.generateKingMoves(board, color);
-                default:
-                  throw new Error(`Invalid piece: ${piece}`);
-              }
-            })
-            .flat()
-        )
-        .flat();
-
-      moves = moves.filter((move) => {
-        this.makeMove(move);
-        const isLegal = !this.isCheck(color);
-        this.undoMove();
-        return isLegal;
-      });
-
-      if (moves.length === 0) {
-        // checkmate
-      }
-
-      return moves;
-    });
-
-  generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("pawnMove", () => {
-      const moves = [];
-
-      switch (color) {
-        case "w":
-          // single push
-          const singlePushW = from << BigInt(8);
-
-          if (
-            singlePushW & Max64BitInt && // 64 bits
-            !this.isCollision(singlePushW)
-          ) {
-            const promotions = this.generatePromotions(
-              from,
-              singlePushW,
-              color
-            );
-            if (promotions.length > 0) {
-              moves.push(...promotions);
-            } else {
-              moves.push({
-                from,
-                to: singlePushW,
-                kind: MoveType.QUIET,
-              }); // ensure pawn pushes don't go off the board for white
-            }
-          }
-
-          // double push
-          const doublePushW = from << BigInt(16);
-
-          if (
-            from & Rank2 && // rank2
-            doublePushW & Max64BitInt && // 64 bits
-            !this.isCollision(singlePushW) &&
-            !this.isCollision(doublePushW)
-          ) {
-            moves.push({
-              from,
-              to: doublePushW,
-              kind: MoveType.DOUBLE_PAWN_PUSH,
-            });
-          }
-          // promotion
-          break;
-        case "b":
-          // single push
-          const singlePushB = from >> BigInt(8);
-
-          if (!this.isCollision(singlePushB)) {
-            const promotions = this.generatePromotions(
-              from,
-              singlePushB,
-              color
-            );
-
-            if (promotions.length > 0) {
-              moves.push(...promotions);
-            } else {
-              moves.push({
-                from,
-                to: singlePushB,
-                kind: MoveType.QUIET,
-              }); // ensure pawn pushes don't go off the board for white
-            }
-          }
-
-          // double push
-          const doublePushB = from >> BigInt(16);
-
-          if (
-            from & Rank7 && // rank 7
-            !this.isCollision(singlePushB) &&
-            !this.isCollision(doublePushB)
-          ) {
-            moves.push({
-              from,
-              to: doublePushB,
-              kind: MoveType.DOUBLE_PAWN_PUSH,
-            });
-          }
-          // promotion
-          break;
-        default:
-          throw new Error("invalid player color!");
-      }
-
-      return moves;
-    });
-
-  generatePromotions = (from: BitBoard, to: BitBoard, color: PlayerColor) => {
-    const promotions = [];
-
-    if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
-      // black or white promotion
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.KNIGHT_PROMOTION,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.BISHOP_PROMOTION,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.ROOK_PROMOTION,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.QUEEN_PROMOTION,
-      });
-    }
-
-    return promotions;
-  };
-
-  generateCapturePromotions = (
-    from: BitBoard,
-    to: BitBoard,
-    color: PlayerColor
-  ) => {
-    const promotions = [];
-
-    if ((color === "w" && to & Rank8) || (color === "b" && to & Rank1)) {
-      // black or white promotion
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.KNIGHT_PROMO_CAPTURE,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.BISHOP_PROMO_CAPTURE,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.ROOK_PROMO_CAPTURE,
-      });
-      promotions.push({
-        from,
-        to,
-        kind: MoveType.QUEEN_PROMO_CAPTURE,
-      });
-    }
-
-    return promotions;
-  };
-
-  generatePawnAttack = (
-    from: BitBoard,
-    to: BitBoard,
-    mask: BitBoard,
-    color: PlayerColor
-  ) => {
-    const attacks = [];
-
-    const enPassantTarget = Squares[this.state.enPassantTarget];
-
-    if (to & Max64BitInt & mask && this.isCapture(to, color)) {
-      const promotions = this.generateCapturePromotions(from, to, color);
-
-      if (promotions.length > 0) {
-        attacks.push(...promotions);
-      } else {
-        attacks.push({
-          from,
-          to,
-          kind: MoveType.CAPTURE,
-        });
-      }
-    }
-
-    if (enPassantTarget && to & enPassantTarget & mask) {
-      attacks.push({
-        from,
-        to,
-        kind: MoveType.EN_PASSANT,
-      });
-    }
-
-    return attacks;
-  };
-
-  generatePawnAttacks = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("pawnAttack", () => {
-      let attacks: Move[] = [];
-
-      switch (color) {
-        case "w":
-          attacks = attacks.concat(
-            this.generatePawnAttack(
-              from,
-              from << BigInt(7),
-              Masks.NOT_H_FILE,
-              color
-            )
-          );
-          attacks = attacks.concat(
-            this.generatePawnAttack(
-              from,
-              from << BigInt(9),
-              Masks.NOT_A_FILE,
-              color
-            )
-          );
-          break;
-        case "b":
-          attacks = attacks.concat(
-            this.generatePawnAttack(
-              from,
-              from >> BigInt(7),
-              Masks.NOT_A_FILE,
-              color
-            )
-          );
-          attacks = attacks.concat(
-            this.generatePawnAttack(
-              from,
-              from >> BigInt(9),
-              Masks.NOT_H_FILE,
-              color
-            )
-          );
-          break;
-        default:
-          throw new Error("invalid player color!");
-      }
-
-      return attacks;
-    });
-
-  generateRayMoves = (
-    from: BitBoard,
-    direction: (from: BitBoard) => BitBoard,
-    color: PlayerColor
-  ): Move[] => {
-    const moves = [];
-
-    let ray = from;
-
-    while (ray) {
-      ray = direction(ray);
-
-      if (ray) {
-        const collided = this.isCollision(ray);
-
-        if (collided && !this.isCapture(ray, color)) break; // hit own piece
-
-        moves.push({
-          from,
-          to: ray,
-          kind: collided ? MoveType.CAPTURE : MoveType.QUIET,
-        });
-
-        if (collided) break;
-      }
-    }
-
-    return moves;
-  };
-
-  generateBishopMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("bishopMove", () => {
-      return this.generateRayMoves(
-        from,
-        (ray) => {
-          ray <<= BigInt(7);
-          ray &= Max64BitInt;
-          ray &= Masks.NOT_H_FILE;
-
-          return ray;
-        },
-        color
-      )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray <<= BigInt(9);
-              ray &= Max64BitInt;
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(7);
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(9);
-              ray &= Masks.NOT_H_FILE;
-
-              return ray;
-            },
-            color
-          )
-        );
-    });
-
-  generateRookMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("rookMove", () => {
-      return this.generateRayMoves(
-        from,
-        (ray) => {
-          ray <<= BigInt(8);
-          ray &= Max64BitInt;
-
-          return ray;
-        },
-        color
-      )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(8);
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray <<= BigInt(1);
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(1);
-              ray &= Masks.NOT_H_FILE;
-
-              return ray;
-            },
-            color
-          )
-        );
-    });
-
-  generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("queenMove", () => {
-      return this.generateBishopMoves(from, color)
-        .concat(this.generateRookMoves(from, color))
-        .map((move) => ({
-          ...move,
-        }));
-    });
-
-  generateCastlingMoves = (color: PlayerColor): Move[] =>
-    timer.time("castlingMove", () => {
-      const castlingMoves: Move[] = [];
-
-      const generateKingCastle = (from: BitBoard, color: PlayerColor) => {
-        if (
-          !this.isCollision(from >> BigInt(1)) &&
-          !this.isCollision(from >> BigInt(2)) &&
-          !this.isAttacked(from, color, true) &&
-          !this.isAttacked(from >> BigInt(1), color, true) &&
-          !this.isAttacked(from >> BigInt(2), color, true)
-        ) {
-          return {
-            from,
-            to: from >> BigInt(2),
-            kind: MoveType.KING_CASTLE,
-          };
-        }
-      };
-
-      const generateQueenCastle = (from: BitBoard, color: PlayerColor) => {
-        if (
-          !this.isCollision(from << BigInt(1)) &&
-          !this.isCollision(from << BigInt(2)) &&
-          !this.isCollision(from << BigInt(3)) &&
-          !this.isAttacked(from, color, true) &&
-          !this.isAttacked(from << BigInt(1), color, true) &&
-          !this.isAttacked(from << BigInt(2), color, true)
-        ) {
-          return {
-            from,
-            to: from << BigInt(2),
-            kind: MoveType.QUEEN_CASTLE,
-          };
-        }
-      };
-
-      if (color === "w") {
-        if (this.state.castlingRights[Castling.WHITE_KING_SIDE]) {
-          const kingCastle = generateKingCastle(this.board.w.king, color);
-          if (kingCastle) castlingMoves.push(kingCastle);
-        }
-        if (this.state.castlingRights[Castling.WHITE_QUEEN_SIDE]) {
-          const queenCastle = generateQueenCastle(this.board.w.king, color);
-          if (queenCastle) castlingMoves.push(queenCastle);
-        }
-      } else if (color === "b") {
-        if (this.state.castlingRights[Castling.BLACK_KING_SIDE]) {
-          const kingCastle = generateKingCastle(this.board.b.king, color);
-          if (kingCastle) castlingMoves.push(kingCastle);
-        }
-        if (this.state.castlingRights[Castling.BLACK_QUEEN_SIDE]) {
-          const queenCastle = generateQueenCastle(this.board.b.king, color);
-          if (queenCastle) castlingMoves.push(queenCastle);
-        }
-      }
-
-      return castlingMoves;
-    });
-
-  generateKingMoves = (
-    from: BitBoard,
-    color: PlayerColor,
-    isCastling: boolean = false
-  ): Move[] =>
-    timer.time("kingMove", () => {
-      const moves = this.masks.kingMasks[stringify(from)]
-        .filter((to) => !this.isOwnCollision(to, color))
-        .map((to) => ({
-          from,
-          to,
-          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
-        }));
-
-      return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
-    });
-
-  generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
-    timer.time("knightMove", () => {
-      return this.masks.knightMasks[stringify(from)]
-        .filter((to) => !this.isOwnCollision(to, color))
-        .map((to) => ({
-          from,
-          to,
-          kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
-        }));
-    });
+  search() {
+    return this.searchStrategy.search();
+  }
 }

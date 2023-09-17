@@ -5,10 +5,11 @@ import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
 import { prettyPrint } from "../src/util/prettyPrint";
 import { getLS1B } from "../src/util/board";
+import { MiniMax } from "../src/search";
 
 // prettyPrint(
 //   // new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-//   //   .generateKnightMoves(
+//   //   .moveGenerator.generateKnightMoves(
 //   //     BigInt(0b0000000000000000000000000000000000000000000000000000000000000010)
 //   //   )
 //   //   .map((a) => a.to)
@@ -45,7 +46,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r3k2r/4pp1p/1pnq1n1b/pBPp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R w Kkq a6 0 12"
     );
-    const moves = position.generateKingMoves(Squares.e1, "w");
+    const moves = position.moveGenerator.generateKingMoves(Squares.e1, "w");
     expect(
       moves.filter(
         (move) =>
@@ -59,7 +60,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r3k2r/4pp1p/Bpnq1n1b/p1Pp2p1/4P1b1/N1PQBP2/PP2N1PP/1R2K2R b Kkq - 1 12"
     );
-    const moves = position.generateKingMoves(Squares.e8, "b");
+    const moves = position.moveGenerator.generateKingMoves(Squares.e8, "b");
     expect(
       moves.filter(
         (move) =>
@@ -73,7 +74,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r4rk1/p2qpp1p/1pn2npb/1BPp4/4P1b1/N1P2P2/PPQBN1PP/1R2K2R w K - 1 11"
     );
-    const moves = position.generateKingMoves(Squares.e1, "w");
+    const moves = position.moveGenerator.generateKingMoves(Squares.e1, "w");
     expect(
       moves.filter(
         (move) =>
@@ -87,7 +88,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r4rk1/pp1qpp1p/2n2npb/1BPp4/4P1b1/2P2P2/PPQBN1PP/RN2K2R w KQ - 6 10"
     );
-    const moves = position.generateKingMoves(Squares.e1, "w");
+    const moves = position.moveGenerator.generateKingMoves(Squares.e1, "w");
     expect(
       moves.filter(
         (move) =>
@@ -101,7 +102,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r3k2r/pp1qpp1p/2n2npb/1BPp4/4P1b1/2P2P2/PPQBN1PP/RN2K2R b KQkq - 5 9"
     );
-    const moves = position.generateKingMoves(Squares.e8, "b");
+    const moves = position.moveGenerator.generateKingMoves(Squares.e8, "b");
     expect(
       moves.filter(
         (move) =>
@@ -115,10 +116,16 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
     );
-    const wMoves = position.generatePawnAttacks(Squares.e7, Color.WHITE);
+    const wMoves = position.moveGenerator.generatePawnAttacks(
+      Squares.e7,
+      Color.WHITE
+    );
     expect(wMoves.length).toEqual(8);
 
-    const bMoves = position.generatePawnAttacks(Squares.e2, Color.BLACK);
+    const bMoves = position.moveGenerator.generatePawnAttacks(
+      Squares.e2,
+      Color.BLACK
+    );
     expect(bMoves.length).toEqual(8);
   });
 
@@ -127,10 +134,16 @@ describe("Position", () => {
       "rnbq1bnr/ppppP1pp/5k2/8/8/2K5/PPP1pPPP/RNBQ1BNR w - - 0 8"
     );
 
-    const wMoves = position.generatePawnMoves(Squares.e7, Color.WHITE);
+    const wMoves = position.moveGenerator.generatePawnMoves(
+      Squares.e7,
+      Color.WHITE
+    );
     expect(wMoves.length).toEqual(4);
 
-    const bMoves = position.generatePawnMoves(Squares.e2, Color.BLACK);
+    const bMoves = position.moveGenerator.generatePawnMoves(
+      Squares.e2,
+      Color.BLACK
+    );
     expect(bMoves.length).toEqual(4);
   });
 
@@ -138,35 +151,79 @@ describe("Position", () => {
     const position = new PositionImpl(
       "r2q1bnr/p1ppk1pp/bNn2p2/1p2p3/3P2Q1/4P3/PPP2PPP/R1B1KBNR b KQ - 5 7"
     );
-    expect(position.isAttacked(Squares.e5, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.d7, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.a8, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.g7, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.b5, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.d8, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.f8, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.g8, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.h8, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.h7, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.f6, Color.BLACK)).toEqual(false);
-    expect(position.isAttacked(Squares.e7, Color.BLACK)).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.e5, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.d7, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.a8, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.g7, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.b5, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.d8, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.f8, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.g8, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.h8, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.h7, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.f6, Color.BLACK)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.e7, Color.BLACK)
+    ).toEqual(false);
 
-    expect(position.isAttacked(Squares.b6, Color.WHITE)).toEqual(true);
-    expect(position.isAttacked(Squares.d4, Color.WHITE)).toEqual(true);
-    expect(position.isAttacked(Squares.g4, Color.WHITE)).toEqual(false);
-    expect(position.isAttacked(Squares.e3, Color.WHITE)).toEqual(false);
-    expect(position.isAttacked(Squares.f2, Color.WHITE)).toEqual(false);
-    expect(position.isAttacked(Squares.g1, Color.WHITE)).toEqual(false);
-    expect(position.isAttacked(Squares.h1, Color.WHITE)).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.b6, Color.WHITE)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.d4, Color.WHITE)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.g4, Color.WHITE)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.e3, Color.WHITE)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.f2, Color.WHITE)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.g1, Color.WHITE)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.h1, Color.WHITE)
+    ).toEqual(false);
   });
 
   it("correctly checks if a piece is under attack", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPP1PPPP/RNBQKBNR w KQkq e6 0 2"
     );
-    expect(position.isAttacked(Squares.e5, Color.BLACK)).toEqual(true);
-    expect(position.isAttacked(Squares.e5, Color.WHITE)).toEqual(false);
-    expect(position.isAttacked(Squares.d4, Color.WHITE)).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.e5, Color.BLACK)
+    ).toEqual(true);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.e5, Color.WHITE)
+    ).toEqual(false);
+    expect(
+      !!position.moveGenerator.generateAttacksOnSquare(Squares.d4, Color.WHITE)
+    ).toEqual(true);
   });
 
   it("correctly handles the half move clock", () => {
@@ -288,7 +345,7 @@ describe("Position", () => {
       "rnbqkbnr/pp1p1ppp/8/2pPp3/8/8/PPP1PPPP/RNBQKBNR w KQkq c6 0 3"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnAttacks(BigInt(Squares.d5), "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -301,7 +358,7 @@ describe("Position", () => {
       "rn2kbn1/p1p1ppp1/3rq3/1p1Q1b1p/P1PP1B1P/4R3/1P2PPP1/RN2KBN1 b Qq a3 0 10"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnAttacks(Squares.b5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -314,7 +371,7 @@ describe("Position", () => {
       "rn2kbn1/p1p1ppp1/2r1q3/1p1Q1b1p/2PP1B1P/4R3/PP2PPP1/RN2KBN1 b Qq c3 0 9"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnAttacks(Squares.c4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -327,7 +384,7 @@ describe("Position", () => {
       "rn2kbn1/ppp1pp2/2r1q1p1/3Q1b1p/3P1B1P/4R3/PPP1PPP1/RN2KBN1 w Qq - 0 9"
     );
     expect(
-      position
+      position.moveGenerator
         .generateQueenMoves(Squares.d5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -340,7 +397,7 @@ describe("Position", () => {
       "rn1qkbn1/ppp1ppp1/2r5/3p1bBp/3P3P/4R3/PPP1PPP1/RN1QKBN1 b Qq - 5 6"
     );
     expect(
-      position
+      position.moveGenerator
         .generateRookMoves(Squares.c6, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -353,7 +410,7 @@ describe("Position", () => {
       "rn1qkbn1/ppp1ppp1/6r1/3p1b1p/3P1B1P/4R3/PPP1PPP1/RN1QKBN1 w Qq - 4 6"
     );
     expect(
-      position
+      position.moveGenerator
         .generateRookMoves(Squares.e3, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -366,7 +423,7 @@ describe("Position", () => {
       "rn1qkbnr/ppp1pppp/8/3p1bB1/3P4/8/PPP1PPPP/RN1QKBNR b KQkq - 3 3"
     );
     expect(
-      position
+      position.moveGenerator
         .generateBishopMoves(Squares.f5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -379,7 +436,7 @@ describe("Position", () => {
       "rnbqkbnr/ppp1pp1p/6p1/3p4/3P1B2/8/PPP1PPPP/RN1QKBNR w KQkq - 0 3"
     );
     expect(
-      position
+      position.moveGenerator
         .generateBishopMoves(Squares.f4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -391,7 +448,9 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
-    expect(position.generateBishopMoves(Squares.c1, "w")).toEqual([]);
+    expect(position.moveGenerator.generateBishopMoves(Squares.c1, "w")).toEqual(
+      []
+    );
   });
 
   it("generates bishop moves that stop at a collision", () => {
@@ -399,7 +458,7 @@ describe("Position", () => {
       "rnbqk1nr/bppp1ppp/p3p3/P7/8/4PP2/1PPP2PP/RNBQKBNR b KQkq - 0 5"
     );
     expect(
-      position
+      position.moveGenerator
         .generateBishopMoves(Squares.a7, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -411,7 +470,9 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
-    expect(position.generatePawnMoves(Squares.h3, "b")).toEqual([]);
+    expect(position.moveGenerator.generatePawnMoves(Squares.h3, "b")).toEqual(
+      []
+    );
   });
 
   it("doesn't generate white pawn moves that result in collisions", () => {
@@ -419,7 +480,7 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnMoves(Squares.a5, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -432,7 +493,7 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnMoves(Squares.h7, "b")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -445,7 +506,7 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR b - - 0 1"
     );
     expect(
-      position
+      position.moveGenerator
         .generatePawnMoves(Squares.a2, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -458,7 +519,7 @@ describe("Position", () => {
       "rnk2bn1/p1p1ppp1/3rq3/1p1Q1b1p/PKPP1B1P/4R3/1P2PPP1/RN3BN1 w - - 11 16"
     );
     expect(
-      position
+      position.moveGenerator
         .generateKingMoves(Squares.b4, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -471,7 +532,7 @@ describe("Position", () => {
       "rn1k1bn1/p1p1ppp1/3rq3/1pKQ1b1p/P1PP1B1P/4R3/1P2PPP1/RN3BN1 w - - 13 17"
     );
     expect(
-      position
+      position.moveGenerator
         .generateKingMoves(Squares.c5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -484,7 +545,7 @@ describe("Position", () => {
       "r2k1bn1/p1p1ppp1/3rq3/1pKQNb1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 0 19"
     );
     expect(
-      position
+      position.moveGenerator
         .generateKnightMoves(Squares.e5, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -497,7 +558,7 @@ describe("Position", () => {
       "r3kbn1/p1p1ppp1/2Nrq3/1pKQ1b1p/P1Pn1B1P/4R3/1P2PPP1/RN3B2 w - - 2 20"
     );
     expect(
-      position
+      position.moveGenerator
         .generateKnightMoves(Squares.c6, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)
@@ -512,7 +573,7 @@ describe("Position", () => {
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
     expect(
-      position
+      position.moveGenerator
         .generateKnightMoves(Squares.g1, "w")
         .map((a) => a.to)
         .reduce((a, b) => a | b)

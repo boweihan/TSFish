@@ -1,5 +1,5 @@
 export interface SearchStrategy {
-  search: (position: Position) => string;
+  search: () => string;
 }
 
 export { default as MiniMax } from "./minimax";
