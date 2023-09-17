@@ -32,7 +32,13 @@ import { Threat, Move, Piece, ThreatMap, ThreatMaps } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
-import { stringify } from "../util/boardHelpers";
+import {
+  countBits,
+  forEachSquare,
+  serializeCastlingRights,
+  stringify,
+  stringifyCastlingRights,
+} from "../util/boardHelpers";
 
 type State = {
   activeColor: PlayerColor;
@@ -142,36 +148,24 @@ export class PositionImpl implements Position {
     const blackPieces = this.board.b.piece;
 
     // material
-    score += this.countBits(whitePieces & this.board.w.pawn) * 100;
-    score += this.countBits(whitePieces & this.board.w.knight) * 320;
-    score += this.countBits(whitePieces & this.board.w.bishop) * 330;
-    score += this.countBits(whitePieces & this.board.w.rook) * 500;
-    score += this.countBits(whitePieces & this.board.w.queen) * 900;
-    score += this.countBits(whitePieces & this.board.w.king) * 20000;
+    score += countBits(whitePieces & this.board.w.pawn) * 100;
+    score += countBits(whitePieces & this.board.w.knight) * 320;
+    score += countBits(whitePieces & this.board.w.bishop) * 330;
+    score += countBits(whitePieces & this.board.w.rook) * 500;
+    score += countBits(whitePieces & this.board.w.queen) * 900;
+    score += countBits(whitePieces & this.board.w.king) * 20000;
 
-    score -= this.countBits(blackPieces & this.board.b.pawn) * 100;
-    score -= this.countBits(blackPieces & this.board.b.knight) * 320;
-    score -= this.countBits(blackPieces & this.board.b.bishop) * 330;
-    score -= this.countBits(blackPieces & this.board.b.rook) * 500;
-    score -= this.countBits(blackPieces & this.board.b.queen) * 900;
-    score -= this.countBits(blackPieces & this.board.b.king) * 20000;
+    score -= countBits(blackPieces & this.board.b.pawn) * 100;
+    score -= countBits(blackPieces & this.board.b.knight) * 320;
+    score -= countBits(blackPieces & this.board.b.bishop) * 330;
+    score -= countBits(blackPieces & this.board.b.rook) * 500;
+    score -= countBits(blackPieces & this.board.b.queen) * 900;
+    score -= countBits(blackPieces & this.board.b.king) * 20000;
 
     // mobility
     score += this.generateMoves().length * 10;
 
     return score;
-  };
-
-  countBits = (board: BitBoard) => {
-    let count = 0;
-
-    while (board) {
-      count++;
-      const ls1b = this.getLS1B(board);
-      board ^= ls1b;
-    }
-
-    return count;
   };
 
   parseUCIMove = (move: string): Move => {
@@ -284,7 +278,7 @@ export class PositionImpl implements Position {
     if (fen === "startpos") {
       return {
         activeColor: "w",
-        castlingRights: this.serializeCastlingRights("KQkq"),
+        castlingRights: serializeCastlingRights("KQkq"),
         enPassantTarget: "-",
         halfMoveClock: 0,
         fullMoveNumber: 1,
@@ -308,7 +302,7 @@ export class PositionImpl implements Position {
 
     return {
       activeColor,
-      castlingRights: this.serializeCastlingRights(castlingRights),
+      castlingRights: serializeCastlingRights(castlingRights),
       enPassantTarget,
       halfMoveClock: parseInt(halfMoveClock),
       fullMoveNumber: parseInt(fullMoveNumber),
@@ -397,7 +391,7 @@ export class PositionImpl implements Position {
     fen += ` ${this.state.activeColor}`;
 
     // generate castling rights
-    fen += ` ${this.stringifyCastlingRights(this.state.castlingRights)}`;
+    fen += ` ${stringifyCastlingRights(this.state.castlingRights)}`;
 
     // generate enpassant target
     fen += ` ${this.state.enPassantTarget}`;
@@ -410,59 +404,6 @@ export class PositionImpl implements Position {
 
     return fen;
   }
-
-  stringifyCastlingRights = (castling: CastlingRights): string => {
-    let serialized = "";
-
-    if (castling.K) {
-      serialized += Castling.WHITE_KING_SIDE;
-    }
-
-    if (castling.Q) {
-      serialized += Castling.WHITE_QUEEN_SIDE;
-    }
-
-    if (castling.k) {
-      serialized += Castling.BLACK_KING_SIDE;
-    }
-
-    if (castling.q) {
-      serialized += Castling.BLACK_QUEEN_SIDE;
-    }
-
-    if (!serialized.length) {
-      serialized = "-";
-    }
-
-    return serialized;
-  };
-
-  serializeCastlingRights = (castling: string) => {
-    const serialized: CastlingRights = {
-      K: false,
-      Q: false,
-      k: false,
-      q: false,
-    };
-
-    if (castling.includes(Castling.WHITE_KING_SIDE)) {
-      serialized.K = true;
-    }
-
-    if (castling.includes(Castling.WHITE_QUEEN_SIDE)) {
-      serialized.Q = true;
-    }
-
-    if (castling.includes(Castling.BLACK_KING_SIDE)) {
-      serialized.k = true;
-    }
-
-    if (castling.includes(Castling.BLACK_QUEEN_SIDE)) {
-      serialized.q = true;
-    }
-
-    return serialized;
-  };
 
   makeMove = (move: Move) =>
     timer.time("makeMove", () => {
@@ -912,42 +853,31 @@ export class PositionImpl implements Position {
     );
   }
 
-  forEachSquare = (
-    board: BitBoard,
-    callback: (...args: BitBoard[]) => void
-  ) => {
-    while (board) {
-      const ls1b = this.getLS1B(board);
-      callback(ls1b);
-      board ^= ls1b; // remove ls1b from board
-    }
-  };
-
   generateMoves = (): Move[] =>
     timer.time("generateMove", () => {
       let moves: Move[] = [];
 
       const color = this.state.activeColor;
 
-      this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+      forEachSquare(this.board[color].pawn, (square: BitBoard) => {
         moves = moves.concat(this.generatePawnMoves(square, color));
       });
-      this.forEachSquare(this.board[color].knight, (square: BitBoard) => {
+      forEachSquare(this.board[color].knight, (square: BitBoard) => {
         moves = moves.concat(this.generateKnightMoves(square, color));
       });
-      this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+      forEachSquare(this.board[color].pawn, (square: BitBoard) => {
         moves = moves.concat(this.generatePawnAttacks(square, color));
       });
-      this.forEachSquare(this.board[color].bishop, (square: BitBoard) => {
+      forEachSquare(this.board[color].bishop, (square: BitBoard) => {
         moves = moves.concat(this.generateBishopMoves(square, color));
       });
-      this.forEachSquare(this.board[color].rook, (square: BitBoard) => {
+      forEachSquare(this.board[color].rook, (square: BitBoard) => {
         moves = moves.concat(this.generateRookMoves(square, color));
       });
-      this.forEachSquare(this.board[color].queen, (square: BitBoard) => {
+      forEachSquare(this.board[color].queen, (square: BitBoard) => {
         moves = moves.concat(this.generateQueenMoves(square, color));
       });
-      this.forEachSquare(this.board[color].king, (square: BitBoard) => {
+      forEachSquare(this.board[color].king, (square: BitBoard) => {
         moves = moves.concat(this.generateKingMoves(square, color));
       });
 
@@ -976,13 +906,6 @@ export class PositionImpl implements Position {
 
       return moves;
     });
-
-  getLS1B = (board: BitBoard) => {
-    // intersection of binary number and it's twos complement isolates the LS1B
-    // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
-    // javascript represents negative numbers as the twos complement
-    return board & -board;
-  };
 
   updateThreatMaps = () =>
     timer.time("updateThreatMaps", () => {
@@ -1019,23 +942,23 @@ export class PositionImpl implements Position {
       });
     };
 
-    this.forEachSquare(this.board[color].knight, (square: BitBoard) => {
+    forEachSquare(this.board[color].knight, (square: BitBoard) => {
       populateThreatMap(Pieces.KNIGHT, this.generateKnightMoves(square, color));
     });
-    this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
+    forEachSquare(this.board[color].pawn, (square: BitBoard) => {
       populateThreatMap(Pieces.PAWN, this.generatePawnThreats(square, color));
     });
-    this.forEachSquare(this.board[color].bishop, (square: BitBoard) => {
+    forEachSquare(this.board[color].bishop, (square: BitBoard) => {
       populateThreatMap(Pieces.BISHOP, this.generateBishopMoves(square, color));
     });
-    this.forEachSquare(this.board[color].rook, (square: BitBoard) => {
+    forEachSquare(this.board[color].rook, (square: BitBoard) => {
       populateThreatMap(Pieces.ROOK, this.generateRookMoves(square, color));
     });
 
-    this.forEachSquare(this.board[color].queen, (square: BitBoard) => {
+    forEachSquare(this.board[color].queen, (square: BitBoard) => {
       populateThreatMap(Pieces.QUEEN, this.generateQueenMoves(square, color));
     });
-    this.forEachSquare(this.board[color].king, (square: BitBoard) => {
+    forEachSquare(this.board[color].king, (square: BitBoard) => {
       populateThreatMap(
         Pieces.KING,
         this.generateKingMoves(square, color, false)

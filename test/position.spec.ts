@@ -3,6 +3,7 @@ import { Color, DefaultFEN, MoveType, Pieces } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
+import { getLS1B } from "../src/util/boardHelpers";
 
 // prettyPrint(
 //   // new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
@@ -519,19 +520,13 @@ describe("Position", () => {
   });
 
   it("gets least significant bit", () => {
-    const position = new PositionImpl(
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    );
-    expect(position.getLS1B(BigInt(0b00111001010000000)).toString(2)).toEqual(
+    expect(getLS1B(BigInt(0b00111001010000000)).toString(2)).toEqual(
       Squares.a1.toString(2)
     );
   });
 
   it("gets least significant bit", () => {
-    const position = new PositionImpl(
-      "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-    );
-    expect(position.getLS1B(BigInt(0b00111001010110000)).toString(2)).toEqual(
+    expect(getLS1B(BigInt(0b00111001010110000)).toString(2)).toEqual(
       Squares.d1.toString(2)
     );
   });
