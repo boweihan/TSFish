@@ -32,7 +32,7 @@ import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
-import { stringify } from "./helpers";
+import { countBits, fanOut, getLS1B, stringify } from "./helpers";
 
 type State = {
   activeColor: PlayerColor;
@@ -140,36 +140,24 @@ export class PositionImpl implements Position {
     const blackPieces = this.board.b.piece;
 
     // material
-    score += this.countBits(whitePieces & this.board.w.pawn) * 100;
-    score += this.countBits(whitePieces & this.board.w.knight) * 320;
-    score += this.countBits(whitePieces & this.board.w.bishop) * 330;
-    score += this.countBits(whitePieces & this.board.w.rook) * 500;
-    score += this.countBits(whitePieces & this.board.w.queen) * 900;
-    score += this.countBits(whitePieces & this.board.w.king) * 20000;
+    score += countBits(whitePieces & this.board.w.pawn) * 100;
+    score += countBits(whitePieces & this.board.w.knight) * 320;
+    score += countBits(whitePieces & this.board.w.bishop) * 330;
+    score += countBits(whitePieces & this.board.w.rook) * 500;
+    score += countBits(whitePieces & this.board.w.queen) * 900;
+    score += countBits(whitePieces & this.board.w.king) * 20000;
 
-    score -= this.countBits(blackPieces & this.board.b.pawn) * 100;
-    score -= this.countBits(blackPieces & this.board.b.knight) * 320;
-    score -= this.countBits(blackPieces & this.board.b.bishop) * 330;
-    score -= this.countBits(blackPieces & this.board.b.rook) * 500;
-    score -= this.countBits(blackPieces & this.board.b.queen) * 900;
-    score -= this.countBits(blackPieces & this.board.b.king) * 20000;
+    score -= countBits(blackPieces & this.board.b.pawn) * 100;
+    score -= countBits(blackPieces & this.board.b.knight) * 320;
+    score -= countBits(blackPieces & this.board.b.bishop) * 330;
+    score -= countBits(blackPieces & this.board.b.rook) * 500;
+    score -= countBits(blackPieces & this.board.b.queen) * 900;
+    score -= countBits(blackPieces & this.board.b.king) * 20000;
 
     // mobility
     score += this.generateMoves().length * 10;
 
     return score;
-  };
-
-  countBits = (board: BitBoard) => {
-    let count = 0;
-
-    while (board) {
-      count++;
-      const ls1b = this.getLS1B(board);
-      board ^= ls1b;
-    }
-
-    return count;
   };
 
   parseUCIMove = (move: string): Move => {
@@ -949,54 +937,35 @@ export class PositionImpl implements Position {
 
   generateMoves = () =>
     timer.time("generateMove", () => {
-      let moves: Move[] = [];
-
-      const generateMovesForPiece = (
-        board: BitBoard,
-        callback: (...args: any[]) => Move[]
-      ) => {
-        while (board) {
-          const ls1b = this.getLS1B(board);
-          moves = moves.concat(callback(ls1b));
-          board ^= ls1b; // remove ls1b from board
-        }
-      };
-
-      const partialRight = (fn: Function, ...presetArgs: any[]) =>
-        function partiallyApplied(...laterArgs: any[]) {
-          return fn(...laterArgs, ...presetArgs);
-        };
-
       const color = this.state.activeColor;
 
-      generateMovesForPiece(
-        this.board[color].pawn,
-        partialRight(this.generatePawnMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].knight,
-        partialRight(this.generateKnightMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].pawn,
-        partialRight(this.generatePawnAttacks, color)
-      );
-      generateMovesForPiece(
-        this.board[color].bishop,
-        partialRight(this.generateBishopMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].rook,
-        partialRight(this.generateRookMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].queen,
-        partialRight(this.generateQueenMoves, color)
-      );
-      generateMovesForPiece(
-        this.board[color].king,
-        partialRight(this.generateKingMoves, color)
-      );
+      let moves: Move[] = Object.values(Pieces)
+        .map((piece) => ({ piece, boards: fanOut(this.board[color][piece]) }))
+        .map(({ piece, boards }) =>
+          boards
+            .map((board) => {
+              switch (piece) {
+                case Pieces.PAWN:
+                  return this.generatePawnMoves(board, color).concat(
+                    this.generatePawnAttacks(board, color)
+                  );
+                case Pieces.KNIGHT:
+                  return this.generateKnightMoves(board, color);
+                case Pieces.BISHOP:
+                  return this.generateBishopMoves(board, color);
+                case Pieces.ROOK:
+                  return this.generateRookMoves(board, color);
+                case Pieces.QUEEN:
+                  return this.generateQueenMoves(board, color);
+                case Pieces.KING:
+                  return this.generateKingMoves(board, color);
+                default:
+                  throw new Error(`Invalid piece: ${piece}`);
+              }
+            })
+            .flat()
+        )
+        .flat();
 
       moves = moves.filter((move) => {
         this.makeMove(move);
@@ -1011,13 +980,6 @@ export class PositionImpl implements Position {
 
       return moves;
     });
-
-  getLS1B = (board: BitBoard) => {
-    // intersection of binary number and it's twos complement isolates the LS1B
-    // https://www.chessprogramming.org/General_Setwise_Operations#TheLeastSignificantOneBitLS1B
-    // javascript represents negative numbers as the twos complement
-    return board & -board;
-  };
 
   generatePawnMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("pawnMove", () => {
