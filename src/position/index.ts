@@ -27,12 +27,12 @@ import {
   Rank7,
   Rank8,
   Squares,
-  SquaresReverse,
 } from "../constants";
-import { Threat, Move, Piece } from "../datatypes/move";
+import { Threat, Move, Piece, ThreatMap, ThreatMaps } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
+import { stringify } from "../util/boardHelpers";
 
 type State = {
   activeColor: PlayerColor;
@@ -57,8 +57,9 @@ export interface Position {
 export class PositionImpl implements Position {
   board: ClassicalBitBoards;
   state: State;
-  history: { board: ClassicalBitBoards; state: State }[];
+  history: { board: ClassicalBitBoards; state: State; threats: ThreatMaps }[];
   masks: PrecomputedMasks;
+  threats: ThreatMaps;
 
   constructor(fen?: string) {
     fen = fen || DefaultFEN;
@@ -66,6 +67,7 @@ export class PositionImpl implements Position {
     this.state = this.fenToState(fen);
     this.history = [];
     this.masks = generateMasks();
+    this.threats = this.generateThreatMaps();
   }
 
   search = (): string => {
@@ -75,9 +77,7 @@ export class PositionImpl implements Position {
       throw new Error("No move found");
     }
 
-    const move = `${SquaresReverse[bestMove.from.toString(2)]}${
-      SquaresReverse[bestMove.to.toString(2)]
-    }`;
+    const move = `${stringify(bestMove.from)}${stringify(bestMove.to)}`;
 
     if (
       bestMove.kind === MoveType.QUEEN_PROMOTION ||
@@ -467,7 +467,13 @@ export class PositionImpl implements Position {
   makeMove = (move: Move) =>
     timer.time("makeMove", () => {
       // put board in board history (for undo)
-      this.history.push(cloneDeep({ board: this.board, state: this.state }));
+      this.history.push(
+        cloneDeep({
+          board: this.board,
+          state: this.state,
+          threats: this.threats,
+        })
+      );
 
       // clear enpassant target
       this.updateEnPassantSquare("-");
@@ -506,7 +512,11 @@ export class PositionImpl implements Position {
       // update board state
       this.updateActiveColor();
 
+      // update full move number
       this.updateFullMoveNumber();
+
+      // regenerate threat maps after every move (TODO: optimize me)
+      this.updateThreatMaps();
     });
 
   determinePiece(from: BitBoard): Piece {
@@ -522,7 +532,7 @@ export class PositionImpl implements Position {
     (w.king & from || b.king & from) && (piece = Pieces.KING);
 
     if (!piece) {
-      throw new Error(`Invalid piece at ${SquaresReverse[from.toString(2)]}`);
+      throw new Error(`Invalid piece at ${stringify(from)}`);
     }
 
     return piece;
@@ -631,7 +641,7 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const square = color === "w" ? from << BigInt(8) : from >> BigInt(8);
 
-    this.updateEnPassantSquare(SquaresReverse[square.toString(2)]);
+    this.updateEnPassantSquare(stringify(square));
 
     this.makeQuietMove(move);
   }
@@ -725,6 +735,9 @@ export class PositionImpl implements Position {
 
         // restore state
         this.state = entry.state;
+
+        // restore threats
+        this.threats = entry.threats;
       }
     });
 
@@ -748,16 +761,14 @@ export class PositionImpl implements Position {
     // console.log(
     //   moves.map(
     //     (move) =>
-    //       `${SquaresReverse[move.from.toString(2)]} -> ${
-    //         SquaresReverse[move.to.toString(2)]
-    //       } : ${move.kind}`
+    //       `${stringify(move.from)} -> ${stringify(move.to)} : ${move.kind}`
     //   )
     // );
 
     if (depth === 1) {
       const nodes = moves.length;
 
-      // console.log(`${move}: ${nodes}, kind: ${moves[0].kind}`);
+      // console.log(`${move}: ${nodes}`);
 
       return nodes;
     }
@@ -769,9 +780,7 @@ export class PositionImpl implements Position {
 
       nodes += this.perft({
         depth: depth - 1,
-        move: `${SquaresReverse[move.from.toString(2)]}${
-          SquaresReverse[move.to.toString(2)]
-        }`,
+        move: `${stringify(move.from)}${stringify(move.to)}`,
         startingDepth,
       });
 
@@ -852,66 +861,18 @@ export class PositionImpl implements Position {
     }
   }
 
-  isAttacked(
-    square: BitBoard,
-    color: PlayerColor,
-    isCastling: boolean = false
-  ) {
-    const opponentColor = color === Color.WHITE ? Color.BLACK : Color.WHITE;
-    const opponentBoard = this.board[opponentColor];
+  isAttacked(square: BitBoard, color: PlayerColor) {
+    if (color === Color.WHITE) {
+      return !!(
+        this.threats[Color.BLACK][stringify(square)] &&
+        this.threats[Color.BLACK][stringify(square)].length > 0
+      );
+    }
 
-    // generating attacks for pieces can effectively create masks for each piece type
-
-    // check if opponent's pawns are attacking
-    const pawnAttacks = this.generatePawnAttacks(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
+    return !!(
+      this.threats[Color.WHITE][stringify(square)] &&
+      this.threats[Color.WHITE][stringify(square)].length > 0
     );
-
-    if (pawnAttacks & opponentBoard.pawn) return true;
-
-    // check if opponent's knights are attacking
-    const knightAttacks = this.generateKnightMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (knightAttacks & opponentBoard.knight) return true;
-
-    // check if opponent's bishops are attacking
-    const bishopAttacks = this.generateBishopMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (bishopAttacks & opponentBoard.bishop) return true;
-
-    // check if opponent's rooks are attacking
-    const rookAttacks = this.generateRookMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (rookAttacks & opponentBoard.rook) return true;
-
-    // check if opponent's queens are attacking
-    const queenAttacks = this.generateQueenMoves(square, color).reduce(
-      (a, b) => a | b.to,
-      BigInt(0)
-    );
-
-    if (queenAttacks & opponentBoard.queen) return true;
-
-    // check if opponent's king is attacking
-    const kingAttacks = this.generateKingMoves(
-      square,
-      color,
-      isCastling
-    ).reduce((a, b) => a | b.to, BigInt(0));
-
-    if (kingAttacks & opponentBoard.king) return true;
-
-    return false;
   }
 
   isCheck(color: PlayerColor) {
@@ -962,25 +923,11 @@ export class PositionImpl implements Position {
     }
   };
 
-  generateMoves = () =>
+  generateMoves = (): Move[] =>
     timer.time("generateMove", () => {
       let moves: Move[] = [];
 
       const color = this.state.activeColor;
-
-      // generate opposite color attack mask - 1 64 bit bitboard
-      // - when moving king, check that it doesn't & with attack mask
-      // - when moving another piece, if it's in line with king, check that king isn't attacked by an opposing
-      //    sliding piece going the opposite direction
-
-      // if you move a piece check that the piece wasn't attacked by a sliding piece
-      // if it was, draw a line from that sliding piece and see if it hits the king
-
-      // start by checking if the king is in check ( & with attack mask )
-      // if it is, check how many checks
-      // if single check and it's by a non sliding piece, only generate king moves that don't put the king in a position that & with attack mask
-      // if it's double check, only generate king moves
-      // if it's a single check by a sliding piece, evoke any moves that don't land between the king and checking piece + king moves
 
       this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
         moves = moves.concat(this.generatePawnMoves(square, color));
@@ -1005,9 +952,21 @@ export class PositionImpl implements Position {
       });
 
       moves = moves.filter((move) => {
+        // castling is already validated
+        if (
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+        ) {
+          return true;
+        }
+
+        // TODO: only do this for pinned pieces
         this.makeMove(move);
+
         const isLegal = !this.isCheck(color);
+
         this.undoMove();
+
         return isLegal;
       });
 
@@ -1025,14 +984,22 @@ export class PositionImpl implements Position {
     return board & -board;
   };
 
-  generateThreatMap = (): { [key: string]: Threat[] } => {
+  updateThreatMaps = () =>
+    timer.time("updateThreatMaps", () => {
+      this.threats = this.generateThreatMaps();
+    });
+
+  generateThreatMaps = (): ThreatMaps => ({
+    w: this.generateThreatMap(Color.WHITE),
+    b: this.generateThreatMap(Color.BLACK),
+  });
+
+  generateThreatMap = (color: PlayerColor): ThreatMap => {
     let attackMap: { [key: string]: Threat[] } = {};
 
-    const color = this.state.activeColor === "w" ? "b" : "w";
-
-    const populateAttackMap = (piece: Piece, moves: Move[]) => {
+    const populateThreatMap = (piece: Piece, moves: Move[]) => {
       moves.forEach((move) => {
-        const square = SquaresReverse[move.to.toString(2)];
+        const square = stringify(move.to);
 
         if (!attackMap[square]) {
           attackMap[square] = [
@@ -1053,24 +1020,26 @@ export class PositionImpl implements Position {
     };
 
     this.forEachSquare(this.board[color].knight, (square: BitBoard) => {
-      populateAttackMap(Pieces.KNIGHT, this.generateKnightMoves(square, color));
+      populateThreatMap(Pieces.KNIGHT, this.generateKnightMoves(square, color));
     });
     this.forEachSquare(this.board[color].pawn, (square: BitBoard) => {
-      populateAttackMap(Pieces.PAWN, this.generatePawnThreats(square, color));
+      populateThreatMap(Pieces.PAWN, this.generatePawnThreats(square, color));
     });
     this.forEachSquare(this.board[color].bishop, (square: BitBoard) => {
-      populateAttackMap(Pieces.BISHOP, this.generateBishopMoves(square, color));
+      populateThreatMap(Pieces.BISHOP, this.generateBishopMoves(square, color));
     });
     this.forEachSquare(this.board[color].rook, (square: BitBoard) => {
-      populateAttackMap(Pieces.ROOK, this.generateRookMoves(square, color));
+      populateThreatMap(Pieces.ROOK, this.generateRookMoves(square, color));
     });
 
     this.forEachSquare(this.board[color].queen, (square: BitBoard) => {
-      const moves = this.generateQueenMoves(square, color);
-      populateAttackMap(Pieces.QUEEN, this.generateQueenMoves(square, color));
+      populateThreatMap(Pieces.QUEEN, this.generateQueenMoves(square, color));
     });
     this.forEachSquare(this.board[color].king, (square: BitBoard) => {
-      populateAttackMap(Pieces.KING, this.generateKingMoves(square, color));
+      populateThreatMap(
+        Pieces.KING,
+        this.generateKingMoves(square, color, false)
+      );
     });
 
     return attackMap;
@@ -1502,9 +1471,9 @@ export class PositionImpl implements Position {
         if (
           !this.isCollision(from >> BigInt(1)) &&
           !this.isCollision(from >> BigInt(2)) &&
-          !this.isAttacked(from, color, true) &&
-          !this.isAttacked(from >> BigInt(1), color, true) &&
-          !this.isAttacked(from >> BigInt(2), color, true)
+          !this.isAttacked(from, color) &&
+          !this.isAttacked(from >> BigInt(1), color) &&
+          !this.isAttacked(from >> BigInt(2), color)
         ) {
           return {
             from,
@@ -1519,9 +1488,9 @@ export class PositionImpl implements Position {
           !this.isCollision(from << BigInt(1)) &&
           !this.isCollision(from << BigInt(2)) &&
           !this.isCollision(from << BigInt(3)) &&
-          !this.isAttacked(from, color, true) &&
-          !this.isAttacked(from << BigInt(1), color, true) &&
-          !this.isAttacked(from << BigInt(2), color, true)
+          !this.isAttacked(from, color) &&
+          !this.isAttacked(from << BigInt(1), color) &&
+          !this.isAttacked(from << BigInt(2), color)
         ) {
           return {
             from,
@@ -1557,10 +1526,10 @@ export class PositionImpl implements Position {
   generateKingMoves = (
     from: BitBoard,
     color: PlayerColor,
-    isCastling: boolean = false
+    generateCastlingMoves: boolean = true
   ): Move[] =>
     timer.time("kingMove", () => {
-      const moves = this.masks.kingMasks[SquaresReverse[from.toString(2)]]
+      const moves = this.masks.kingMasks[stringify(from)]
         .filter((to) => !this.isOwnCollision(to, color))
         .map((to) => ({
           from,
@@ -1568,12 +1537,14 @@ export class PositionImpl implements Position {
           kind: this.isCapture(to, color) ? MoveType.CAPTURE : MoveType.QUIET,
         }));
 
-      return moves.concat(isCastling ? [] : this.generateCastlingMoves(color));
+      return moves.concat(
+        generateCastlingMoves ? this.generateCastlingMoves(color) : []
+      );
     });
 
   generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("knightMove", () => {
-      return this.masks.knightMasks[SquaresReverse[from.toString(2)]]
+      return this.masks.knightMasks[stringify(from)]
         .filter((to) => !this.isOwnCollision(to, color))
         .map((to) => ({
           from,

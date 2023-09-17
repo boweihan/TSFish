@@ -1,15 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import {
-  Color,
-  DefaultFEN,
-  MoveType,
-  Pieces,
-  SquaresReverse,
-} from "../src/constants";
+import { Color, DefaultFEN, MoveType, Pieces } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
-import { prettyPrint } from "../src/util/prettyPrint";
 
 // prettyPrint(
 //   // new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
@@ -627,7 +620,7 @@ describe("Position", () => {
     const position = new PositionImpl(
       "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     );
-    const map = position.generateThreatMap();
+    const map = position.generateThreatMap(Color.BLACK);
     expect(map).toEqual({
       f6: [
         {
@@ -738,10 +731,10 @@ describe("Position", () => {
     });
   });
 
-  it.only("generates attack map (sliding pieces)", () => {
+  it("generates attack map (sliding pieces)", () => {
     const fen = "r1bk4/q1n5/p7/P4N2/8/B1N5/2Q2PPP/1RK4R w - - 9 26";
     const position = new PositionImpl(fen);
-    const map = position.generateThreatMap();
+    const map = position.generateThreatMap(Color.BLACK);
     expect(map).toEqual({
       b5: [
         {
