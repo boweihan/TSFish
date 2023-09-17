@@ -4,7 +4,7 @@ import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
 import { prettyPrint } from "../src/util/prettyPrint";
-import { getLS1B } from "../src/position/helpers";
+import { getLS1B } from "../src/util/board";
 
 // prettyPrint(
 //   // new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")

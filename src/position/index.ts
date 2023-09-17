@@ -32,7 +32,11 @@ import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
-import { countBits, fanOut, getLS1B, stringify } from "./helpers";
+import { countBits, fanOut, stringify } from "../util/board";
+import {
+  serializeCastlingRights,
+  stringifyCastlingRights,
+} from "../util/castling";
 
 type State = {
   activeColor: PlayerColor;
@@ -270,7 +274,7 @@ export class PositionImpl implements Position {
     if (fen === "startpos") {
       return {
         activeColor: "w",
-        castlingRights: this.serializeCastlingRights("KQkq"),
+        castlingRights: serializeCastlingRights("KQkq"),
         enPassantTarget: "-",
         halfMoveClock: 0,
         fullMoveNumber: 1,
@@ -294,7 +298,7 @@ export class PositionImpl implements Position {
 
     return {
       activeColor,
-      castlingRights: this.serializeCastlingRights(castlingRights),
+      castlingRights: serializeCastlingRights(castlingRights),
       enPassantTarget,
       halfMoveClock: parseInt(halfMoveClock),
       fullMoveNumber: parseInt(fullMoveNumber),
@@ -383,7 +387,7 @@ export class PositionImpl implements Position {
     fen += ` ${this.state.activeColor}`;
 
     // generate castling rights
-    fen += ` ${this.stringifyCastlingRights(this.state.castlingRights)}`;
+    fen += ` ${stringifyCastlingRights(this.state.castlingRights)}`;
 
     // generate enpassant target
     fen += ` ${this.state.enPassantTarget}`;
@@ -396,59 +400,6 @@ export class PositionImpl implements Position {
 
     return fen;
   }
-
-  stringifyCastlingRights = (castling: CastlingRights): string => {
-    let serialized = "";
-
-    if (castling.K) {
-      serialized += Castling.WHITE_KING_SIDE;
-    }
-
-    if (castling.Q) {
-      serialized += Castling.WHITE_QUEEN_SIDE;
-    }
-
-    if (castling.k) {
-      serialized += Castling.BLACK_KING_SIDE;
-    }
-
-    if (castling.q) {
-      serialized += Castling.BLACK_QUEEN_SIDE;
-    }
-
-    if (!serialized.length) {
-      serialized = "-";
-    }
-
-    return serialized;
-  };
-
-  serializeCastlingRights = (castling: string) => {
-    const serialized: CastlingRights = {
-      K: false,
-      Q: false,
-      k: false,
-      q: false,
-    };
-
-    if (castling.includes(Castling.WHITE_KING_SIDE)) {
-      serialized.K = true;
-    }
-
-    if (castling.includes(Castling.WHITE_QUEEN_SIDE)) {
-      serialized.Q = true;
-    }
-
-    if (castling.includes(Castling.BLACK_KING_SIDE)) {
-      serialized.k = true;
-    }
-
-    if (castling.includes(Castling.BLACK_QUEEN_SIDE)) {
-      serialized.q = true;
-    }
-
-    return serialized;
-  };
 
   makeMove = (move: Move) =>
     timer.time("makeMove", () => {
