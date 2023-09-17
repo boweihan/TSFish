@@ -53,9 +53,9 @@ export interface Position {
   perft: ({ depth }: { depth: number }) => number;
   makeMove: (move: Move) => void;
   undoMove: () => void;
+  generateMoves: () => Move[];
   parseUCIMove: (move: string) => Move;
   positionToFen: () => string;
-  search: () => string;
 }
 
 export class PositionImpl implements Position {
@@ -71,98 +71,6 @@ export class PositionImpl implements Position {
     this.history = [];
     this.masks = generateMasks();
   }
-
-  search = (): string => {
-    const bestMove = this.alphaBetaRootNode(3);
-
-    if (!bestMove) {
-      throw new Error("No move found");
-    }
-
-    const move = `${stringify(bestMove.from)}${stringify(bestMove.to)}`;
-
-    if (
-      bestMove.kind === MoveType.QUEEN_PROMOTION ||
-      bestMove.kind === MoveType.QUEEN_PROMO_CAPTURE
-    ) {
-      return `${move}q`;
-    } else if (
-      bestMove.kind === MoveType.ROOK_PROMOTION ||
-      bestMove.kind === MoveType.ROOK_PROMO_CAPTURE
-    ) {
-      return `${move}r`;
-    } else if (
-      bestMove.kind === MoveType.BISHOP_PROMOTION ||
-      bestMove.kind === MoveType.BISHOP_PROMO_CAPTURE
-    ) {
-      return `${move}b`;
-    } else if (
-      bestMove.kind === MoveType.KNIGHT_PROMOTION ||
-      bestMove.kind === MoveType.KNIGHT_PROMO_CAPTURE
-    ) {
-      return `${move}n`;
-    }
-
-    return move;
-  };
-
-  alphaBetaRootNode = (depth: number): Move | undefined => {
-    let bestScore = -Infinity;
-    let bestMove: Move | undefined = undefined;
-
-    for (const move of this.generateMoves()) {
-      this.makeMove(move);
-      const value = -this.alphaBeta(-Infinity, Infinity, depth - 1);
-      this.undoMove();
-      if (value >= bestScore) {
-        bestScore = value;
-        bestMove = move;
-      }
-    }
-
-    return bestMove;
-  };
-
-  alphaBeta = (alpha: number, beta: number, depthleft: number): number => {
-    if (depthleft === 0) return this.evaluate();
-
-    for (const move of this.generateMoves()) {
-      this.makeMove(move);
-      const score = -this.alphaBeta(-beta, -alpha, depthleft - 1);
-      this.undoMove();
-      if (score >= beta) return beta;
-      if (score > alpha) alpha = score;
-    }
-
-    return alpha;
-  };
-
-  evaluate = (): number => {
-    let score = 0;
-
-    const whitePieces = this.board.w.piece;
-    const blackPieces = this.board.b.piece;
-
-    // material
-    score += countBits(whitePieces & this.board.w.pawn) * 100;
-    score += countBits(whitePieces & this.board.w.knight) * 320;
-    score += countBits(whitePieces & this.board.w.bishop) * 330;
-    score += countBits(whitePieces & this.board.w.rook) * 500;
-    score += countBits(whitePieces & this.board.w.queen) * 900;
-    score += countBits(whitePieces & this.board.w.king) * 20000;
-
-    score -= countBits(blackPieces & this.board.b.pawn) * 100;
-    score -= countBits(blackPieces & this.board.b.knight) * 320;
-    score -= countBits(blackPieces & this.board.b.bishop) * 330;
-    score -= countBits(blackPieces & this.board.b.rook) * 500;
-    score -= countBits(blackPieces & this.board.b.queen) * 900;
-    score -= countBits(blackPieces & this.board.b.king) * 20000;
-
-    // mobility
-    score += this.generateMoves().length * 10;
-
-    return score;
-  };
 
   parseUCIMove = (move: string): Move => {
     const from = Squares[move.slice(0, 2)];

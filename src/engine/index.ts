@@ -1,5 +1,6 @@
 import { EngineInput } from "../constants";
 import { Position, PositionImpl } from "../position";
+import { MiniMax } from "../search";
 import timer from "../util/timer";
 
 export default class UCIEngine {
@@ -106,11 +107,11 @@ export default class UCIEngine {
         }
 
         // start calculating
-        console.log(`bestmove ${this.position.search()}`);
+        console.log(`bestmove ${new MiniMax(this.position).search()}`);
 
         break;
       case EngineInput.STOP:
-        console.log(`bestmove ${this.position.search()}`);
+        console.log(`bestmove ${new MiniMax(this.position).search()}`);
         break;
       case EngineInput.PONDERHIT:
         // not implemented
