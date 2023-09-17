@@ -27,12 +27,12 @@ import {
   Rank7,
   Rank8,
   Squares,
-  SquaresReverse,
 } from "../constants";
 import { Move, Piece } from "../datatypes/move";
 import { cloneDeep } from "../util/deepCopy";
 import timer from "../util/timer";
 import { PrecomputedMasks, generateMasks } from "../util/masks";
+import { stringify } from "./helpers";
 
 type State = {
   activeColor: PlayerColor;
@@ -75,9 +75,7 @@ export class PositionImpl implements Position {
       throw new Error("No move found");
     }
 
-    const move = `${SquaresReverse[bestMove.from.toString(2)]}${
-      SquaresReverse[bestMove.to.toString(2)]
-    }`;
+    const move = `${stringify(bestMove.from)}${stringify(bestMove.to)}`;
 
     if (
       bestMove.kind === MoveType.QUEEN_PROMOTION ||
@@ -522,7 +520,7 @@ export class PositionImpl implements Position {
     (w.king & from || b.king & from) && (piece = Pieces.KING);
 
     if (!piece) {
-      throw new Error(`Invalid piece at ${SquaresReverse[from.toString(2)]}`);
+      throw new Error(`Invalid piece at ${stringify(from)}`);
     }
 
     return piece;
@@ -631,7 +629,7 @@ export class PositionImpl implements Position {
     const color = this.board.w.piece & from ? "w" : "b";
     const square = color === "w" ? from << BigInt(8) : from >> BigInt(8);
 
-    this.updateEnPassantSquare(SquaresReverse[square.toString(2)]);
+    this.updateEnPassantSquare(stringify(square));
 
     this.makeQuietMove(move);
   }
@@ -748,8 +746,8 @@ export class PositionImpl implements Position {
     // console.log(
     //   moves.map(
     //     (move) =>
-    //       `${SquaresReverse[move.from.toString(2)]} -> ${
-    //         SquaresReverse[move.to.toString(2)]
+    //       `${stringify(move.from)} -> ${
+    //         stringify(move.to)
     //       } : ${move.kind}`
     //   )
     // );
@@ -769,9 +767,7 @@ export class PositionImpl implements Position {
 
       nodes += this.perft({
         depth: depth - 1,
-        move: `${SquaresReverse[move.from.toString(2)]}${
-          SquaresReverse[move.to.toString(2)]
-        }`,
+        move: `${stringify(move.from)}${stringify(move.to)}`,
         startingDepth,
       });
 
@@ -1467,7 +1463,7 @@ export class PositionImpl implements Position {
     isCastling: boolean = false
   ): Move[] =>
     timer.time("kingMove", () => {
-      const moves = this.masks.kingMasks[SquaresReverse[from.toString(2)]]
+      const moves = this.masks.kingMasks[stringify(from)]
         .filter((to) => !this.isOwnCollision(to, color))
         .map((to) => ({
           from,
@@ -1480,7 +1476,7 @@ export class PositionImpl implements Position {
 
   generateKnightMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("knightMove", () => {
-      return this.masks.knightMasks[SquaresReverse[from.toString(2)]]
+      return this.masks.knightMasks[stringify(from)]
         .filter((to) => !this.isOwnCollision(to, color))
         .map((to) => ({
           from,
