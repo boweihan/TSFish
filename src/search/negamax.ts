@@ -4,7 +4,7 @@ import { Move } from "../datatypes/move";
 import { Position } from "../position";
 import { countBits, stringify } from "../util/board";
 
-export default class MiniMax implements SearchStrategy {
+export default class NegaMax implements SearchStrategy {
   position: Position;
 
   constructor(position: Position) {

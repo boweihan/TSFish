@@ -36,7 +36,7 @@ import {
   serializeCastlingRights,
   stringifyCastlingRights,
 } from "../util/castling";
-import { MiniMax, SearchStrategy } from "../search";
+import { NegaMax, SearchStrategy } from "../search";
 import { MoveGenerator, PseudoLegalGenerator } from "../generator";
 
 type State = {
@@ -76,7 +76,7 @@ export class PositionImpl implements Position {
     this.state = this.fenToState(fen);
     this.history = [];
     this.masks = generateMasks();
-    this.searchStrategy = new MiniMax(this);
+    this.searchStrategy = new NegaMax(this);
     this.moveGenerator = new PseudoLegalGenerator(this);
   }
 

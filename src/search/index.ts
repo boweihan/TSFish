@@ -2,4 +2,4 @@ export interface SearchStrategy {
   search: () => string;
 }
 
-export { default as MiniMax } from "./minimax";
+export { default as NegaMax } from "./negamax";

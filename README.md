@@ -30,25 +30,29 @@ Interface
 
 - UCI - https://backscattering.de/chess/uci/
 
-Multi-threading
+Multi-threading (`src/worker`)
 
 - NodeJS supports a form of parallelism with worker_threads, with which you can spawn separate processes to execute code. This isn't traditional multi-threading in the sense that threads can't access the execution context of their parents but worker_threads can communicate to eachother by passing events.
 
-Board representation
+Board representation (`src/datatypes`)
 
 - Bitboards represented as 64 bit BigInts. Manual enforcement of 64 bit maximum. JavaScript supports bitwise operations which makes it efficient to perform operations such as checking the existence of a piece. Shifting bits on a bitboard is an efficient way to generate moves for a piece.
 
-Move generation
+Game State (`src/position`)
 
-- Move generation is done via calculation at runtime (rather than pre-computed tables) using the `generate*()` functions in `position.ts`.
+- The Position class is responsible for game state, board tracking, and move making.
+
+Move generation (`src/generator`)
+
+- Move generation uses pre-generated move caches but calculates around collisions and captures at runtime.
 - Move generation is done in a pseudo-legal manner (doesn't consider checks and pins at generation time) with the exception of castling, in which intermediate steps are "check"ed.
 - Pseudo-legal moves are pruned for legality post-generation in the `generateMoves()` function.
 
-Search
+Search (`src/search`)
 
 - Search uses a simplified Alpha-Beta algorithm (https://www.chessprogramming.org/Alpha-Beta) using the NegaMax framework.
 
-Evaluation
+Evaluation (`src/search`)
 
 - Evaluation uses a symmetric evaluation function in which pieces have weighted scores and the algorithm is essentially `score = sum(scores_side) - sum(scores_opposing_side)`
 
@@ -78,7 +82,6 @@ Evaluation
 ## Improvements TBD
 
 - Magic bitboards to speed up move generation of sliding pieces
-- Generating legal moves using attack masks to avoid post-generation legality checking
 - Quiescence search addition to search
 - Improved evaluation function
 - Support opening books
