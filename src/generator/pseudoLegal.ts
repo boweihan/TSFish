@@ -17,7 +17,6 @@ import { Position } from "../position";
 import { PlayerColor } from "../types";
 import {
   calculatePinnedPieces,
-  determinePiece,
   fanOut,
   isCapture,
   isCollision,
@@ -31,7 +30,6 @@ import {
   shiftUp,
   stringify,
 } from "../util/board";
-import { prettyPrint } from "../util/prettyPrint";
 import timer from "../util/timer";
 
 export default class PseudoLegalGenerator implements MoveGenerator {
@@ -93,8 +91,13 @@ export default class PseudoLegalGenerator implements MoveGenerator {
           return true;
         }
 
+        // TODO: check for single check vs double check
+        // - double check only the king can move
+        // - single check non-sliding piece either the king can move or another piece can capture the attacker
+        // - single check sliding piece king can move, another piece can capture the attacker, or another piece can block the check
+
         // check if the move is legal the slow way if
-        // - king is in check
+        // - king is in check (TODO: optimize me)
         // - the piece is pinned
         // - the piece is the current color king
         if (
