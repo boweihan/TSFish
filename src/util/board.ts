@@ -8,6 +8,7 @@ import {
 import { BitBoard, ClassicalBitBoards } from "../datatypes";
 import { Move, Piece } from "../datatypes/move";
 import { PlayerColor } from "../types";
+import { prettify } from "./prettyPrint";
 
 export const stringify = (board: BitBoard): string =>
   SquaresReverse[board.toString(2)];
@@ -80,7 +81,9 @@ export const determinePiece = (
   (w.king & from || b.king & from) && (piece = Pieces.KING);
 
   if (!piece) {
-    throw new Error(`Invalid piece at ${stringify(from)}`);
+    throw new Error(
+      `Invalid piece at ${stringify(from)} ${prettify(board.w.piece)}`
+    );
   }
 
   return piece;
@@ -158,7 +161,7 @@ export const shiftRight = (from: BitBoard) => {
 export const calculatePinnedPieces = (
   board: ClassicalBitBoards,
   color: PlayerColor
-) => {
+): BitBoard => {
   // start from the king of the specified color
   const king = board[color].king;
 

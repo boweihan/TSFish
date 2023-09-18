@@ -1,6 +1,6 @@
 import { ClassicalBitBoards } from "../datatypes";
 
-const prettify = (board: bigint) => {
+export const prettify = (board: bigint) => {
   const ranks = 8;
   const binaryStr = board.toString(2).padStart(64, "0");
 

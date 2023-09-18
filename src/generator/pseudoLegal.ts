@@ -16,6 +16,8 @@ import { Move } from "../datatypes/move";
 import { Position } from "../position";
 import { PlayerColor } from "../types";
 import {
+  calculatePinnedPieces,
+  determinePiece,
   fanOut,
   isCapture,
   isCollision,
@@ -29,6 +31,7 @@ import {
   shiftUp,
   stringify,
 } from "../util/board";
+import { prettyPrint } from "../util/prettyPrint";
 import timer from "../util/timer";
 
 export default class PseudoLegalGenerator implements MoveGenerator {
@@ -45,26 +48,26 @@ export default class PseudoLegalGenerator implements MoveGenerator {
       let moves: Move[] = Object.values(Pieces)
         .map((piece) => ({
           piece,
-          boards: fanOut(this.position.board[color][piece]),
+          pieceBitBoards: fanOut(this.position.board[color][piece]),
         }))
-        .map(({ piece, boards }) =>
-          boards
-            .map((board) => {
+        .map(({ piece, pieceBitBoards }) =>
+          pieceBitBoards
+            .map((pieceBitBoard) => {
               switch (piece) {
                 case Pieces.PAWN:
-                  return this.generatePawnMoves(board, color).concat(
-                    this.generatePawnAttacks(board, color)
+                  return this.generatePawnMoves(pieceBitBoard, color).concat(
+                    this.generatePawnAttacks(pieceBitBoard, color)
                   );
                 case Pieces.KNIGHT:
-                  return this.generateKnightMoves(board, color);
+                  return this.generateKnightMoves(pieceBitBoard, color);
                 case Pieces.BISHOP:
-                  return this.generateBishopMoves(board, color);
+                  return this.generateBishopMoves(pieceBitBoard, color);
                 case Pieces.ROOK:
-                  return this.generateRookMoves(board, color);
+                  return this.generateRookMoves(pieceBitBoard, color);
                 case Pieces.QUEEN:
-                  return this.generateQueenMoves(board, color);
+                  return this.generateQueenMoves(pieceBitBoard, color);
                 case Pieces.KING:
-                  return this.generateKingMoves(board, color);
+                  return this.generateKingMoves(pieceBitBoard, color);
                 default:
                   throw new Error(`Invalid piece: ${piece}`);
               }
@@ -73,25 +76,54 @@ export default class PseudoLegalGenerator implements MoveGenerator {
         )
         .flat();
 
-      timer.time("totalMoves", () => moves.length);
+      const pins = calculatePinnedPieces(this.position.board, color);
+
+      const isInCheck = this.generateAttacksOnSquare(
+        this.position.board[color].king,
+        color
+      );
 
       moves = moves.filter((move) => {
         if (
           move.kind === MoveType.KING_CASTLE ||
           move.kind === MoveType.QUEEN_CASTLE
         ) {
+          // castling moves are always legal
           timer.time("legalMoves", () => 1);
           return true;
         }
 
-        this.position.makeMove(move);
-        const isLegal = !this.position.isCheck(color);
-        this.position.undoMove();
-        return isLegal;
+        // check if the move is legal the slow way if
+        // - king is in check
+        // - the piece is pinned
+        // - the piece is the current color king
+        if (
+          isInCheck ||
+          move.from & pins ||
+          this.position.board[color].king & move.from
+        ) {
+          this.position.makeMove(move);
+
+          const isLegal = !this.generateAttacksOnSquare(
+            this.position.board[color].king,
+            color
+          );
+
+          this.position.undoMove();
+
+          timer.time("checkedMoves", () => 1);
+
+          return isLegal;
+        }
+
+        //  everything else is legal
+        timer.time("legalMoves", () => 1);
+
+        return true;
       });
 
       if (moves.length === 0) {
-        // checkmate
+        // checkmated
       }
 
       return moves;
@@ -344,15 +376,13 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
     let ray = from;
 
-    const board = this.position.board;
-
     while (ray) {
       ray = shift(ray);
 
       if (ray) {
-        const collided = isCollision(board, ray);
+        const collided = isCollision(this.position.board, ray);
 
-        if (collided && !isCapture(board, ray, color)) break; // hit own piece
+        if (collided && !isCapture(this.position.board, ray, color)) break; // hit own piece
 
         moves.push({
           from,

@@ -58,7 +58,6 @@ export interface Position {
   generateMoves: () => Move[];
   parseUCIMove: (move: string) => Move;
   positionToFen: () => string;
-  isCheck: (color: PlayerColor) => BitBoard;
   isOwnCollision: (to: BitBoard, color: PlayerColor) => BitBoard;
   search: () => string;
 }
@@ -568,9 +567,7 @@ export class PositionImpl implements Position {
     // console.log(
     //   moves.map(
     //     (move) =>
-    //       `${stringify(move.from)} -> ${
-    //         stringify(move.to)
-    //       } : ${move.kind}`
+    //       `${stringify(move.from)} -> ${stringify(move.to)} : ${move.kind}`
     //   )
     // );
 
@@ -660,13 +657,6 @@ export class PositionImpl implements Position {
     if (this.state.activeColor === Color.WHITE) {
       this.state.fullMoveNumber++;
     }
-  }
-
-  isCheck(color: PlayerColor) {
-    return this.moveGenerator.generateAttacksOnSquare(
-      this.board[color].king,
-      color
-    );
   }
 
   isCheckmate() {

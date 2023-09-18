@@ -52,7 +52,15 @@ Evaluation
 
 - Evaluation uses a symmetric evaluation function in which pieces have weighted scores and the algorithm is essentially `score = sum(scores_side) - sum(scores_opposing_side)`
 
-## PERFT Benchmarks from startpos
+## PERFT Benchmarks from startpos (approximate, on my dev laptop)
+
+09/17/2023 - optimize around king moves and pinned pieces
+
+- Perft(1) - 0.55 ms
+- Perft(2) - 1.4 ms
+- Perft(3) - 22 ms
+- Perft(4) - 339 ms
+- Perft(5) - 10 s
 
 06/15/2023
 
