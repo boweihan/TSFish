@@ -6,6 +6,7 @@
   "scripts": {
     "start": "bun run src/index.ts --watch",
     "build": "bun build src/index.ts --outdir build --minify --target bun",
+    "build:binary": "bun build src/index.ts --compile --outfile tsfish",
     "build:exec": "bun run build/index.js",
     "test": "bun test --watch"
   },
