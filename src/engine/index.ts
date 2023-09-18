@@ -1,6 +1,5 @@
 import { EngineInput } from "../constants";
 import { Position, PositionImpl } from "../position";
-import { MiniMax } from "../search";
 import timer from "../util/timer";
 
 export default class UCIEngine {

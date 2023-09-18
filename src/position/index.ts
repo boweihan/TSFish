@@ -29,6 +29,7 @@ import { PrecomputedMasks, generateMasks } from "../util/masks";
 import {
   determinePiece,
   determinePromotionPiece,
+  isCapture,
   stringify,
 } from "../util/board";
 import {
@@ -58,9 +59,7 @@ export interface Position {
   parseUCIMove: (move: string) => Move;
   positionToFen: () => string;
   isCheck: (color: PlayerColor) => BitBoard;
-  isCollision: (to: BitBoard) => BitBoard;
   isOwnCollision: (to: BitBoard, color: PlayerColor) => BitBoard;
-  isCapture: (to: BitBoard, color: PlayerColor) => BitBoard;
   search: () => string;
 }
 
@@ -87,7 +86,7 @@ export class PositionImpl implements Position {
     const to = Squares[move.slice(2, 4)];
 
     const color = from & this.board.w.piece ? Color.WHITE : Color.BLACK;
-    const capture = this.isCapture(to, color);
+    const capture = isCapture(this.board, to, color);
 
     let moveType = capture ? MoveType.CAPTURE : MoveType.QUIET;
 
@@ -604,14 +603,6 @@ export class PositionImpl implements Position {
 
   isOwnCollision(to: BitBoard, color: PlayerColor) {
     return this.board[color].piece & to;
-  }
-
-  isCollision(to: BitBoard) {
-    return (this.board.w.piece & to) | (this.board.b.piece & to);
-  }
-
-  isCapture(to: BitBoard, color: PlayerColor) {
-    return this.board[color === "w" ? "b" : "w"].piece & to;
   }
 
   set(board: BitBoard, square: BitBoard): BitBoard {

@@ -69,8 +69,6 @@ Evaluation
 
 ## Improvements TBD
 
-- Add test and support for en-passant capture in isCapture
-- Pre-computed tables to speed up move generation
 - Magic bitboards to speed up move generation of sliding pieces
 - Generating legal moves using attack masks to avoid post-generation legality checking
 - Quiescence search addition to search

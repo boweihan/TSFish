@@ -9,6 +9,7 @@ export type Timings = {
   rookMove: number;
   queenMove: number;
   kingMove: number;
+  totalMoves: number;
   legalMoves: number;
   isCheck: number;
   castlingMove: number;
@@ -27,6 +28,7 @@ const defaultTimings = {
   rookMove: 0,
   queenMove: 0,
   kingMove: 0,
+  totalMoves: 0,
   legalMoves: 0,
   isCheck: 0,
   castlingMove: 0,
@@ -43,6 +45,7 @@ const defaultCounts = {
   rookMove: 0,
   queenMove: 0,
   kingMove: 0,
+  totalMoves: 0,
   legalMoves: 0,
   isCheck: 0,
   castlingMove: 0,

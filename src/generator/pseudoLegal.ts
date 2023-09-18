@@ -15,7 +15,20 @@ import { BitBoard } from "../datatypes";
 import { Move } from "../datatypes/move";
 import { Position } from "../position";
 import { PlayerColor } from "../types";
-import { fanOut, stringify } from "../util/board";
+import {
+  fanOut,
+  isCapture,
+  isCollision,
+  shiftDown,
+  shiftLeft,
+  shiftNE,
+  shiftNW,
+  shiftRight,
+  shiftSE,
+  shiftSW,
+  shiftUp,
+  stringify,
+} from "../util/board";
 import timer from "../util/timer";
 
 export default class PseudoLegalGenerator implements MoveGenerator {
@@ -60,7 +73,17 @@ export default class PseudoLegalGenerator implements MoveGenerator {
         )
         .flat();
 
+      timer.time("totalMoves", () => moves.length);
+
       moves = moves.filter((move) => {
+        if (
+          move.kind === MoveType.KING_CASTLE ||
+          move.kind === MoveType.QUEEN_CASTLE
+        ) {
+          timer.time("legalMoves", () => 1);
+          return true;
+        }
+
         this.position.makeMove(move);
         const isLegal = !this.position.isCheck(color);
         this.position.undoMove();
@@ -85,7 +108,7 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
           if (
             singlePushW & Max64BitInt && // 64 bits
-            !this.position.isCollision(singlePushW)
+            !isCollision(this.position.board, singlePushW)
           ) {
             const promotions = this.generatePromotions(
               from,
@@ -109,8 +132,8 @@ export default class PseudoLegalGenerator implements MoveGenerator {
           if (
             from & Rank2 && // rank2
             doublePushW & Max64BitInt && // 64 bits
-            !this.position.isCollision(singlePushW) &&
-            !this.position.isCollision(doublePushW)
+            !isCollision(this.position.board, singlePushW) &&
+            !isCollision(this.position.board, doublePushW)
           ) {
             moves.push({
               from,
@@ -124,7 +147,7 @@ export default class PseudoLegalGenerator implements MoveGenerator {
           // single push
           const singlePushB = from >> BigInt(8);
 
-          if (!this.position.isCollision(singlePushB)) {
+          if (!isCollision(this.position.board, singlePushB)) {
             const promotions = this.generatePromotions(
               from,
               singlePushB,
@@ -147,8 +170,8 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
           if (
             from & Rank7 && // rank 7
-            !this.position.isCollision(singlePushB) &&
-            !this.position.isCollision(doublePushB)
+            !isCollision(this.position.board, singlePushB) &&
+            !isCollision(this.position.board, doublePushB)
           ) {
             moves.push({
               from,
@@ -239,7 +262,7 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
     const enPassantTarget = Squares[this.position.state.enPassantTarget];
 
-    if (to & Max64BitInt & mask && this.position.isCapture(to, color)) {
+    if (to & Max64BitInt & mask && isCapture(this.position.board, to, color)) {
       const promotions = this.generateCapturePromotions(from, to, color);
 
       if (promotions.length > 0) {
@@ -314,20 +337,22 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
   generateRayMoves = (
     from: BitBoard,
-    direction: (from: BitBoard) => BitBoard,
+    shift: (from: BitBoard) => BitBoard,
     color: PlayerColor
   ): Move[] => {
     const moves = [];
 
     let ray = from;
 
+    const board = this.position.board;
+
     while (ray) {
-      ray = direction(ray);
+      ray = shift(ray);
 
       if (ray) {
-        const collided = this.position.isCollision(ray);
+        const collided = isCollision(board, ray);
 
-        if (collided && !this.position.isCapture(ray, color)) break; // hit own piece
+        if (collided && !isCapture(board, ray, color)) break; // hit own piece
 
         moves.push({
           from,
@@ -344,103 +369,18 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
   generateBishopMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("bishopMove", () => {
-      return this.generateRayMoves(
-        from,
-        (ray) => {
-          ray <<= BigInt(7);
-          ray &= Max64BitInt;
-          ray &= Masks.NOT_H_FILE;
-
-          return ray;
-        },
-        color
-      )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray <<= BigInt(9);
-              ray &= Max64BitInt;
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(7);
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(9);
-              ray &= Masks.NOT_H_FILE;
-
-              return ray;
-            },
-            color
-          )
-        );
+      return this.generateRayMoves(from, shiftNE, color)
+        .concat(this.generateRayMoves(from, shiftNW, color))
+        .concat(this.generateRayMoves(from, shiftSW, color))
+        .concat(this.generateRayMoves(from, shiftSE, color));
     });
 
   generateRookMoves = (from: BitBoard, color: PlayerColor): Move[] =>
     timer.time("rookMove", () => {
-      return this.generateRayMoves(
-        from,
-        (ray) => {
-          ray <<= BigInt(8);
-          ray &= Max64BitInt;
-
-          return ray;
-        },
-        color
-      )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(8);
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray <<= BigInt(1);
-              ray &= Masks.NOT_A_FILE;
-
-              return ray;
-            },
-            color
-          )
-        )
-        .concat(
-          this.generateRayMoves(
-            from,
-            (ray) => {
-              ray >>= BigInt(1);
-              ray &= Masks.NOT_H_FILE;
-
-              return ray;
-            },
-            color
-          )
-        );
+      return this.generateRayMoves(from, shiftUp, color)
+        .concat(this.generateRayMoves(from, shiftDown, color))
+        .concat(this.generateRayMoves(from, shiftLeft, color))
+        .concat(this.generateRayMoves(from, shiftRight, color));
     });
 
   generateQueenMoves = (from: BitBoard, color: PlayerColor): Move[] =>
@@ -458,8 +398,8 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
       const generateKingCastle = (from: BitBoard, color: PlayerColor) => {
         if (
-          !this.position.isCollision(from >> BigInt(1)) &&
-          !this.position.isCollision(from >> BigInt(2)) &&
+          !isCollision(this.position.board, from >> BigInt(1)) &&
+          !isCollision(this.position.board, from >> BigInt(2)) &&
           !this.generateAttacksOnSquare(from, color) &&
           !this.generateAttacksOnSquare(from >> BigInt(1), color) &&
           !this.generateAttacksOnSquare(from >> BigInt(2), color)
@@ -474,9 +414,9 @@ export default class PseudoLegalGenerator implements MoveGenerator {
 
       const generateQueenCastle = (from: BitBoard, color: PlayerColor) => {
         if (
-          !this.position.isCollision(from << BigInt(1)) &&
-          !this.position.isCollision(from << BigInt(2)) &&
-          !this.position.isCollision(from << BigInt(3)) &&
+          !isCollision(this.position.board, from << BigInt(1)) &&
+          !isCollision(this.position.board, from << BigInt(2)) &&
+          !isCollision(this.position.board, from << BigInt(3)) &&
           !this.generateAttacksOnSquare(from, color) &&
           !this.generateAttacksOnSquare(from << BigInt(1), color) &&
           !this.generateAttacksOnSquare(from << BigInt(2), color)
@@ -525,7 +465,7 @@ export default class PseudoLegalGenerator implements MoveGenerator {
         .map((to) => ({
           from,
           to,
-          kind: this.position.isCapture(to, color)
+          kind: isCapture(this.position.board, to, color)
             ? MoveType.CAPTURE
             : MoveType.QUIET,
         }));
@@ -542,7 +482,7 @@ export default class PseudoLegalGenerator implements MoveGenerator {
         .map((to) => ({
           from,
           to,
-          kind: this.position.isCapture(to, color)
+          kind: isCapture(this.position.board, to, color)
             ? MoveType.CAPTURE
             : MoveType.QUIET,
         }));

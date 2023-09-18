@@ -3,9 +3,7 @@ import { Color, DefaultFEN, MoveType } from "../src/constants";
 import { Squares } from "../src/constants";
 import { boardsToBitBoards } from "../src/datatypes";
 import { PositionImpl } from "../src/position";
-import { prettyPrint } from "../src/util/prettyPrint";
 import { getLS1B } from "../src/util/board";
-import { MiniMax } from "../src/search";
 
 // prettyPrint(
 //   // new PositionImpl("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
