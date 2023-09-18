@@ -12,7 +12,7 @@ export default class NegaMax implements SearchStrategy {
   }
 
   search = (): string => {
-    const bestMove = this.alphaBetaRootNode(3);
+    const bestMove = this.alphaBetaRootNode(5);
 
     if (!bestMove) {
       throw new Error("No move found");
@@ -100,7 +100,7 @@ export default class NegaMax implements SearchStrategy {
     score -= countBits(blackPieces & board.b.king) * 20000;
 
     // mobility
-    score += this.position.generateMoves().length * 10;
+    // score += this.position.generateMoves().length * 10;
 
     return score;
   };
